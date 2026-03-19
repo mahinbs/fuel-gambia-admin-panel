@@ -1,4 +1,4 @@
-import { DashboardStats, ChartData, SuperAdminDashboardStats, DepartmentOfficerDashboardStats, StationManagerDashboardStats } from '@/types';
+import { DashboardStats, ChartData, SuperAdminDashboardStats, GovernmentAdminDashboardStats, StationAdminDashboardStats } from '@/types';
 
 // Mock data generators
 const generateMockStats = (): DashboardStats => ({
@@ -25,7 +25,7 @@ const generateSuperAdminStats = (): SuperAdminDashboardStats => ({
   totalStationManagers: 28,
 });
 
-const generateDepartmentOfficerStats = (): DepartmentOfficerDashboardStats => ({
+const generateGovernmentAdminStats = (): GovernmentAdminDashboardStats => ({
   totalBeneficiaries: 450,
   monthlyAllocatedFuel: 45000,
   usedFuel: 32000,
@@ -36,7 +36,7 @@ const generateDepartmentOfficerStats = (): DepartmentOfficerDashboardStats => ({
   totalAllocations: 450,
 });
 
-const generateStationManagerStats = (): StationManagerDashboardStats => ({
+const generateStationAdminStats = (): StationAdminDashboardStats => ({
   todaySales: 125000,
   monthlyFuelDispensed: 85000,
   petrolStock: 12000,
@@ -186,8 +186,8 @@ export const dashboardService = {
     });
   },
 
-  async getDepartmentOfficerDashboard(): Promise<{
-    stats: DepartmentOfficerDashboardStats;
+  async getGovernmentAdminDashboard(): Promise<{
+    stats: GovernmentAdminDashboardStats;
     monthlyAllocationTrend: ChartData[];
     departmentBreakdown: ChartData[];
     usageMonitoring: ChartData[];
@@ -195,7 +195,7 @@ export const dashboardService = {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
-          stats: generateDepartmentOfficerStats(),
+          stats: generateGovernmentAdminStats(),
           monthlyAllocationTrend: generateMonthlyAllocationTrend(),
           departmentBreakdown: generateDepartmentBreakdown(),
           usageMonitoring: generateUsageMonitoring(),
@@ -204,8 +204,8 @@ export const dashboardService = {
     });
   },
 
-  async getStationManagerDashboard(): Promise<{
-    stats: StationManagerDashboardStats;
+  async getHQDashboard(): Promise<{
+    stats: StationAdminDashboardStats;
     dailySalesTrend: ChartData[];
     inventoryLevels: ChartData[];
     transactionTrend: ChartData[];
@@ -213,7 +213,25 @@ export const dashboardService = {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve({
-          stats: generateStationManagerStats(),
+          stats: generateStationAdminStats(),
+          dailySalesTrend: generateDailySalesTrend(),
+          inventoryLevels: generateInventoryLevels(),
+          transactionTrend: generateTransactionTrend(),
+        });
+      }, 500);
+    });
+  },
+
+  async getBranchDashboard(): Promise<{
+    stats: StationAdminDashboardStats;
+    dailySalesTrend: ChartData[];
+    inventoryLevels: ChartData[];
+    transactionTrend: ChartData[];
+  }> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          stats: generateStationAdminStats(),
           dailySalesTrend: generateDailySalesTrend(),
           inventoryLevels: generateInventoryLevels(),
           transactionTrend: generateTransactionTrend(),

@@ -21,7 +21,7 @@ export const TableHead: React.FC<{ children: React.ReactNode; className?: string
   className,
 }) => {
   return (
-    <thead className={cn('bg-gray-50 dark:bg-gray-900', className)}>
+    <thead className={cn('bg-slate-50/50 dark:bg-slate-800/50', className)}>
       {children}
     </thead>
   );
@@ -31,7 +31,7 @@ export const TableBody: React.FC<{ children: React.ReactNode; className?: string
   children,
   className,
 }) => {
-  return <tbody className={className}>{children}</tbody>;
+  return <tbody className={cn('divide-y divide-slate-100 dark:divide-slate-800', className)}>{children}</tbody>;
 };
 
 export const TableRow: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void }> = ({
@@ -42,8 +42,8 @@ export const TableRow: React.FC<{ children: React.ReactNode; className?: string;
   return (
     <tr
       className={cn(
-        'border-b border-gray-200 dark:border-gray-700',
-        onClick && 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800',
+        'transition-colors duration-200',
+        onClick ? 'cursor-pointer hover:bg-blue-50/30 dark:hover:bg-blue-900/10' : 'hover:bg-slate-50/30 dark:hover:bg-slate-800/30',
         className
       )}
       onClick={onClick}
@@ -60,7 +60,7 @@ export const TableHeader: React.FC<{ children: React.ReactNode; className?: stri
   return (
     <th
       className={cn(
-        'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
+        'px-8 py-4 text-left text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest',
         className
       )}
     >
@@ -82,7 +82,7 @@ export const TableCell: React.FC<TableCellProps> = ({
 }) => {
   return (
     <td 
-      className={cn('px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100', className)}
+      className={cn('px-8 py-5 whitespace-nowrap text-sm font-semibold text-slate-700 dark:text-slate-300', className)}
       colSpan={colSpan}
     >
       {children}

@@ -17,18 +17,18 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={cn(
-        'bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6',
+        'bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5',
         className
       )}
     >
       {(title || actions) && (
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-8">
           {title && (
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
               {title}
             </h3>
           )}
-          {actions && <div>{actions}</div>}
+          {actions && <div className="flex gap-2">{actions}</div>}
         </div>
       )}
       {children}

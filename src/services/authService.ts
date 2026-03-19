@@ -24,25 +24,34 @@ const MOCK_ADMINS: AdminUser[] = [
     email: 'superadmin@fuelgambia.com',
     name: 'Super Admin',
     role: AdminRole.SUPER_ADMIN,
-    permissions: [],
+    permissions: ['ALL'],
     createdAt: new Date().toISOString(),
     active: true,
   },
   {
     id: '2',
     email: 'deptofficer@fuelgambia.com',
-    name: 'Department Officer',
-    role: AdminRole.DEPARTMENT_OFFICER,
-    permissions: [],
+    name: 'Dept. Officer',
+    role: AdminRole.GOVERNMENT_ADMIN,
+    permissions: ['GOV_READ', 'GOV_WRITE'],
     createdAt: new Date().toISOString(),
     active: true,
   },
   {
     id: '3',
-    email: 'stationmanager@fuelgambia.com',
+    email: 'stationhq@fuelgambia.com',
+    name: 'Station HQ Admin',
+    role: AdminRole.STATION_HQ,
+    permissions: ['HQ_READ', 'HQ_WRITE'],
+    createdAt: new Date().toISOString(),
+    active: true,
+  },
+  {
+    id: '4',
+    email: 'stationbranch@fuelgambia.com',
     name: 'Station Manager',
-    role: AdminRole.STATION_MANAGER,
-    permissions: [],
+    role: AdminRole.STATION_BRANCH,
+    permissions: ['BRANCH_READ', 'BRANCH_WRITE'],
     createdAt: new Date().toISOString(),
     active: true,
   },
@@ -53,8 +62,13 @@ export const authService = {
     // Mock login - in production, this would call the actual API
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        const admin = MOCK_ADMINS.find((a) => a.email === email);
-        if (admin && password === 'password123') {
+        const normalizedEmail = email.toLowerCase().trim().replace('dept.', 'dept').replace('official', 'officer');
+        const admin = MOCK_ADMINS.find((a) => {
+          const mockEmail = a.email.toLowerCase().trim();
+          return mockEmail === normalizedEmail || (normalizedEmail.includes('dept') && mockEmail.includes('dept'));
+        });
+
+        if (admin && (password === 'password123' || password === 'admin123')) {
           const token = `mock_token_${admin.id}_${Date.now()}`;
           const refreshToken = `mock_refresh_${admin.id}_${Date.now()}`;
           
@@ -85,6 +99,7 @@ export const authService = {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      window.location.href = '/login';
     }
     return Promise.resolve();
   },
@@ -129,7 +144,7 @@ export const authService = {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         // Check if email already exists
-        const existingAdmin = MOCK_ADMINS.find((a) => a.email === data.email);
+        const existingAdmin = MOCK_ADMINS.find((a) => a.email.toLowerCase() === data.email.toLowerCase());
         if (existingAdmin) {
           reject(new Error('Email already registered'));
           return;

@@ -1,8 +1,9 @@
 // Admin Role Types
 export enum AdminRole {
-  SUPER_ADMIN = 'SUPER_ADMIN', // Government Department Head
-  DEPARTMENT_OFFICER = 'DEPARTMENT_OFFICER', // Department Officer
-  STATION_MANAGER = 'STATION_MANAGER', // Fuel Station Manager
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  GOVERNMENT_ADMIN = 'GOVERNMENT_ADMIN',
+  STATION_HQ = 'STATION_HQ',
+  STATION_BRANCH = 'STATION_BRANCH',
 }
 
 // User Types (from mobile app)
@@ -441,7 +442,7 @@ export interface SuperAdminDashboardStats {
   totalStationManagers: number;
 }
 
-export interface DepartmentOfficerDashboardStats {
+export interface GovernmentAdminDashboardStats {
   totalBeneficiaries: number;
   monthlyAllocatedFuel: number; // liters
   usedFuel: number;
@@ -452,7 +453,7 @@ export interface DepartmentOfficerDashboardStats {
   totalAllocations: number;
 }
 
-export interface StationManagerDashboardStats {
+export interface StationAdminDashboardStats {
   todaySales: number; // GMD
   monthlyFuelDispensed: number; // liters
   petrolStock: number;

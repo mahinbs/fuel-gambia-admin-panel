@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { DashboardStats, ChartData, SuperAdminDashboardStats, DepartmentOfficerDashboardStats, StationManagerDashboardStats } from '@/types';
+import { DashboardStats, ChartData, SuperAdminDashboardStats, GovernmentAdminDashboardStats, StationAdminDashboardStats } from '@/types';
 import { dashboardService } from '@/services/dashboardService';
 
 interface DashboardState {
   stats: DashboardStats | null;
   superAdminStats: SuperAdminDashboardStats | null;
-  departmentOfficerStats: DepartmentOfficerDashboardStats | null;
-  stationManagerStats: StationManagerDashboardStats | null;
+  governmentAdminStats: GovernmentAdminDashboardStats | null;
+  hqAdminStats: StationAdminDashboardStats | null;
+  branchAdminStats: StationAdminDashboardStats | null;
   monthlySubsidyTrend: ChartData[];
   paidFuelSalesTrend: ChartData[];
   fuelTypeDistribution: ChartData[];
@@ -28,8 +29,9 @@ interface DashboardState {
 const initialState: DashboardState = {
   stats: null,
   superAdminStats: null,
-  departmentOfficerStats: null,
-  stationManagerStats: null,
+  governmentAdminStats: null,
+  hqAdminStats: null,
+  branchAdminStats: null,
   monthlySubsidyTrend: [],
   paidFuelSalesTrend: [],
   fuelTypeDistribution: [],
@@ -64,18 +66,26 @@ export const fetchSuperAdminDashboard = createAsyncThunk(
   }
 );
 
-export const fetchDepartmentOfficerDashboard = createAsyncThunk(
-  'dashboard/fetchDepartmentOfficer',
+export const fetchGovernmentAdminDashboard = createAsyncThunk(
+  'dashboard/fetchGovernmentAdmin',
   async () => {
-    const response = await dashboardService.getDepartmentOfficerDashboard();
+    const response = await dashboardService.getGovernmentAdminDashboard();
     return response;
   }
 );
 
-export const fetchStationManagerDashboard = createAsyncThunk(
-  'dashboard/fetchStationManager',
+export const fetchHQDashboard = createAsyncThunk(
+  'dashboard/fetchHQ',
   async () => {
-    const response = await dashboardService.getStationManagerDashboard();
+    const response = await dashboardService.getHQDashboard();
+    return response;
+  }
+);
+
+export const fetchBranchDashboard = createAsyncThunk(
+  'dashboard/fetchBranch',
+  async () => {
+    const response = await dashboardService.getBranchDashboard();
     return response;
   }
 );
@@ -127,35 +137,50 @@ const dashboardSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || 'Failed to fetch super admin dashboard';
       })
-      .addCase(fetchDepartmentOfficerDashboard.pending, (state) => {
+      .addCase(fetchGovernmentAdminDashboard.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDepartmentOfficerDashboard.fulfilled, (state, action) => {
+      .addCase(fetchGovernmentAdminDashboard.fulfilled, (state, action) => {
         state.loading = false;
-        state.departmentOfficerStats = action.payload.stats;
+        state.governmentAdminStats = action.payload.stats;
         state.monthlyAllocationTrend = action.payload.monthlyAllocationTrend || [];
         state.departmentBreakdown = action.payload.departmentBreakdown || [];
         state.usageMonitoring = action.payload.usageMonitoring || [];
       })
-      .addCase(fetchDepartmentOfficerDashboard.rejected, (state, action) => {
+      .addCase(fetchGovernmentAdminDashboard.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch department officer dashboard';
+        state.error = action.error.message || 'Failed to fetch government admin dashboard';
       })
-      .addCase(fetchStationManagerDashboard.pending, (state) => {
+      .addCase(fetchHQDashboard.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchStationManagerDashboard.fulfilled, (state, action) => {
+      .addCase(fetchHQDashboard.fulfilled, (state, action) => {
         state.loading = false;
-        state.stationManagerStats = action.payload.stats;
+        state.hqAdminStats = action.payload.stats;
         state.dailySalesTrend = action.payload.dailySalesTrend || [];
         state.inventoryLevels = action.payload.inventoryLevels || [];
         state.transactionTrend = action.payload.transactionTrend || [];
       })
-      .addCase(fetchStationManagerDashboard.rejected, (state, action) => {
+      .addCase(fetchHQDashboard.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch station manager dashboard';
+        state.error = action.error.message || 'Failed to fetch hq dashboard';
+      })
+      .addCase(fetchBranchDashboard.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBranchDashboard.fulfilled, (state, action) => {
+        state.loading = false;
+        state.branchAdminStats = action.payload.stats;
+        state.dailySalesTrend = action.payload.dailySalesTrend || [];
+        state.inventoryLevels = action.payload.inventoryLevels || [];
+        state.transactionTrend = action.payload.transactionTrend || [];
+      })
+      .addCase(fetchBranchDashboard.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch branch dashboard';
       });
   },
 });

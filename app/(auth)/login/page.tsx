@@ -39,90 +39,105 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const result = await dispatch(login(data)).unwrap();
-      showToast('Login successful!', 'success');
-      
-      // Redirect to role-specific dashboard
+      showToast('Welcome back!', 'success');
       const dashboardPath = authService.getDashboardPath(result.user.role);
       router.push(dashboardPath);
     } catch (error: any) {
-      showToast(error.message || 'Login failed', 'error');
+      showToast(error.message || 'Authentication failed', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-          <div className="flex items-center justify-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl">
-              <Fuel className="text-white" size={32} />
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-blue-100 via-slate-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900">
+      <div className="absolute inset-0 bg-grid-slate-200/[0.05] dark:bg-grid-white/[0.05] -z-10" />
+      
+      {/* Decorative Blur Orbs */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[120px] -z-10 animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-400/20 dark:bg-indigo-600/10 rounded-full blur-[120px] -z-10 animate-pulse delay-700" />
+
+      <div className="w-full max-w-md relative">
+        <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/20 dark:border-slate-800/50 p-8 md:p-12 overflow-hidden">
+          <div className="flex flex-col items-center mb-10">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-2xl shadow-lg mb-6 transform hover:rotate-12 transition-transform duration-300">
+              <Fuel className="text-white" size={40} />
             </div>
+            <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">Fuel Gambia</h1>
+            <div className="h-1.5 w-12 bg-blue-600 rounded-full mb-4" />
+            <p className="text-slate-600 dark:text-slate-400 font-medium">Administration Secure Access</p>
           </div>
-          
-          <h1 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-2">
-            Fuel Gambia
-          </h1>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-8">
-            Admin Panel Login
-          </p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <Input
-              label="Email"
+              label="Work Email"
               type="email"
-              placeholder="admin@fuelgambia.com"
+              placeholder="name@fuelgambia.com"
               {...register('email')}
               error={errors.email?.message}
             />
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              {...register('password')}
-              error={errors.password?.message}
-            />
+            <div className="space-y-1">
+              <Input
+                label="Security Key"
+                type="password"
+                placeholder="••••••••"
+                {...register('password')}
+                error={errors.password?.message}
+              />
+              <div className="text-right">
+                <Link href="/forgot-password" className="text-xs font-semibold text-blue-600 hover:text-blue-500 transition-colors">
+                  Recovery Access?
+                </Link>
+              </div>
+            </div>
 
             <Button
               type="submit"
               variant="primary"
               size="lg"
-              className="w-full"
+              className="w-full h-14 text-lg shadow-xl shadow-blue-500/25"
               isLoading={isLoading}
             >
-              Sign In
+              Sign In to Dashboard
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Don't have an account?{' '}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              New to the platform?{' '}
               <Link
                 href="/signup"
-                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold transition-all"
               >
-                Sign up
+                Join Registry
               </Link>
             </p>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-              <strong>Demo Credentials:</strong>
-            </p>
-            <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-              <p>
-                <strong>Super Admin:</strong> superadmin@fuelgambia.com
+          {/* Training Mode / Demo Credentials */}
+          <div className="mt-10 p-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-3xl border border-slate-100 dark:border-slate-700/50 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                System Credentials
               </p>
-              <p>
-                <strong>Dept. Officer:</strong> deptofficer@fuelgambia.com
-              </p>
-              <p>
-                <strong>Station Manager:</strong> stationmanager@fuelgambia.com
-              </p>
-              <p className="mt-2">Password: password123</p>
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: 'Super Admin', email: 'superadmin@fuelgambia.com' },
+                { label: 'Dept. Officer', email: 'deptofficer@fuelgambia.com' },
+                { label: 'Station HQ', email: 'stationhq@fuelgambia.com' }
+              ].map((cred) => (
+                <div key={cred.email} className="flex justify-between items-center group">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{cred.label}</span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors group-hover:text-blue-500">{cred.email}</span>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 mt-2 flex justify-between">
+                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Universal Pass</span>
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">password123</span>
+              </div>
             </div>
           </div>
         </div>
