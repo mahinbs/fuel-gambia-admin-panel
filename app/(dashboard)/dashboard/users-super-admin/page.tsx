@@ -15,21 +15,33 @@ export default function UsersSuperAdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const users = [
-    { id: '1', name: 'Mustapha Sahil', email: 'mustapha@fuelgambia.com', role: AdminRole.SUPER_ADMIN, status: 'ACTIVE', lastLogin: '12 mins ago' },
-    { id: '2', name: 'Alieu Jallow', email: 'alieu.j@gov.gm', role: AdminRole.GOVERNMENT_ADMIN, status: 'ACTIVE', lastLogin: '2 hours ago' },
-    { id: '3', name: 'Fatou Bensouda', email: 'fatou@stationhq.com', role: AdminRole.STATION_HQ, status: 'INACTIVE', lastLogin: '3 days ago' },
+    { id: '1', name: 'Mustapha Sahil', email: 'mustapha@fuelgambia.com', role: AdminRole.SUPER_ADMIN, level: 'National', status: 'ACTIVE', lastLogin: '12 mins ago' },
+    { id: '2', name: 'Alieu Jallow', email: 'alieu.j@gov.gm', role: AdminRole.GOVERNMENT_ADMIN, level: 'National', status: 'ACTIVE', lastLogin: '2 hours ago' },
+    { id: '3', name: 'Fatou Bensouda', email: 'fatou@stationhq.com', role: AdminRole.STATION_HQ, level: 'HQ', status: 'INACTIVE', lastLogin: '3 days ago' },
+    { id: '4', name: 'Modou Barrow', email: 'modou@station-banjul.com', role: AdminRole.STATION_BRANCH, level: 'Branch', status: 'ACTIVE', lastLogin: '5 mins ago' },
+    { id: '5', name: 'Samba Diallo', email: 'samba.d@mobileapp.com', role: 'MOBILE_USER', level: 'Mobile App', status: 'ACTIVE', lastLogin: '1 hour ago' },
+    { id: '6', name: 'Bakary Jatta', email: 'bakary@station-hq.com', role: 'PUMP_ATTENDANT', level: 'Branch', status: 'ACTIVE', lastLogin: '12 mins ago' },
+    { id: '7', name: 'Isatou Touray', email: 'isatou@institution-health.com', role: 'INSTITUTION_USER', level: 'Institution', status: 'PENDING', lastLogin: 'Never' },
   ];
 
   const getRoleBadge = (role: string) => {
     switch (role) {
       case AdminRole.SUPER_ADMIN:
-        return <Badge variant="info" size="sm" className="bg-blue-600 font-black">SUPER ADMIN</Badge>;
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-blue-600 font-black text-[9px] px-0">SUPER ADMIN</Badge>;
       case AdminRole.GOVERNMENT_ADMIN:
-        return <Badge variant="warning" size="sm" className="bg-purple-600 font-black">GOVT OFFICER</Badge>;
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-purple-600 font-black text-[9px] px-0">GOVT OFFICER</Badge>;
       case AdminRole.STATION_HQ:
-        return <Badge variant="info" size="sm" className="bg-indigo-600 font-black">STATION HQ</Badge>;
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-indigo-600 font-black text-[9px] px-0">STATION HQ</Badge>;
+      case AdminRole.STATION_BRANCH:
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-emerald-600 font-black text-[9px] px-0">STATION BRANCH</Badge>;
+      case 'MOBILE_USER':
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-blue-500 font-black text-[9px] px-0">MOBILE USER</Badge>;
+      case 'PUMP_ATTENDANT':
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-amber-600 font-black text-[9px] px-0">PUMP ATTENDANT</Badge>;
+      case 'INSTITUTION_USER':
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent text-amber-600 font-black text-[9px] px-0">INSTITUTION</Badge>;
       default:
-        return <Badge variant="default" size="sm" className="font-black text-slate-500">STAFF</Badge>;
+        return <Badge variant="outline" size="sm" className="border-none bg-transparent font-black text-slate-500 text-[9px] px-0">STAFF</Badge>;
     }
   };
 
@@ -58,6 +70,7 @@ export default function UsersSuperAdminPage() {
               <TableRow>
                 <TableHeader className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Identity & Contact</TableHeader>
                 <TableHeader className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Security Role</TableHeader>
+                <TableHeader className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Access Level</TableHeader>
                 <TableHeader className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Account status</TableHeader>
                 <TableHeader className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Last Session</TableHeader>
                 <TableHeader className="py-5 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Management</TableHeader>
@@ -81,6 +94,9 @@ export default function UsersSuperAdminPage() {
                   </TableCell>
                   <TableCell className="py-5 px-6">
                     {getRoleBadge(u.role)}
+                  </TableCell>
+                  <TableCell className="py-5 px-6">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-tighter">{u.level}</span>
                   </TableCell>
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-2">
@@ -126,6 +142,8 @@ export default function UsersSuperAdminPage() {
                 <option value={AdminRole.GOVERNMENT_ADMIN}>Government Officer</option>
                 <option value={AdminRole.STATION_HQ}>Station HQ Manager</option>
                 <option value={AdminRole.STATION_BRANCH}>Station Branch Manager</option>
+                <option value="MOBILE_USER">Mobile App User</option>
+                <option value="PUMP_ATTENDANT">Pump Attendant</option>
               </select>
             </div>
           </div>

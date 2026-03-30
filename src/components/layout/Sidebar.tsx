@@ -61,7 +61,7 @@ const allMenuItems: MenuItem[] = [
   { icon: UserCog, label: 'User Management', path: '/dashboard/beneficiaries-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: ShoppingCart, label: 'Fuel Allocation', path: '/dashboard/allocations-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: Building, label: 'Companies Onboarding', path: '/dashboard/companies-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
-  { icon: CheckSquare, label: 'Approvals', path: '/dashboard/approvals-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
+  { icon: CheckSquare, label: 'Approvals', path: '/dashboard/approvals-gov', roles: [AdminRole.GOVERNMENT_ADMIN, AdminRole.SUPER_ADMIN] },
   { icon: Shield, label: 'Policy Management', path: '/dashboard/policies-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: FileText, label: 'Reports', path: '/dashboard/reports-government-admin', roles: [AdminRole.GOVERNMENT_ADMIN] },
   
@@ -83,6 +83,8 @@ const allMenuItems: MenuItem[] = [
   { icon: ClipboardList, label: 'Inventory Management', path: '/dashboard/inventory-branch', roles: [AdminRole.STATION_BRANCH] },
   { icon: TrendingUp, label: 'Daily Reconciliation', path: '/dashboard/reconciliation-branch', roles: [AdminRole.STATION_BRANCH] },
   { icon: FileText, label: 'Reporting', path: '/dashboard/reports-branch', roles: [AdminRole.STATION_BRANCH] },
+  // Common Settings (available to all)
+  { icon: Settings, label: 'Settings', path: '/dashboard/settings-super-admin', roles: [AdminRole.STATION_HQ, AdminRole.STATION_BRANCH, AdminRole.GOVERNMENT_ADMIN] },
 ];
 
 export const Sidebar: React.FC = () => {

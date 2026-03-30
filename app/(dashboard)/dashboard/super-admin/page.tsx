@@ -15,6 +15,8 @@ import {
   Users,
   UserCheck,
   FileCheck,
+  Building,
+  CreditCard,
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatLiters } from '@/utils/format';
 import {
@@ -64,11 +66,39 @@ export default function SuperAdminDashboardPage() {
       change: '+12%',
     },
     {
-      title: 'Monthly Subsidy Utilization',
-      value: `${superAdminStats?.monthlySubsidyUtilization || 0}%`,
-      icon: TrendingUp,
+      title: 'Mobile App Users',
+      value: formatNumber(superAdminStats?.totalMobileUsers || 0),
+      icon: Users,
+      color: 'blue',
+      change: '+15%',
+    },
+    {
+      title: 'Branch Users',
+      value: formatNumber(superAdminStats?.totalBranchUsers || 0),
+      icon: Users,
       color: 'purple',
-      change: '-2%',
+      change: '+5%',
+    },
+    {
+      title: 'Station HQ Users',
+      value: formatNumber(superAdminStats?.totalHQUsers || 0),
+      icon: Building,
+      color: 'indigo',
+      change: '+2',
+    },
+    {
+      title: 'Department Users',
+      value: formatNumber(superAdminStats?.totalDeptUsers || 0),
+      icon: UserCheck,
+      color: 'emerald',
+      change: '+8',
+    },
+    {
+      title: 'Fuel Coupons Used',
+      value: formatNumber(superAdminStats?.totalCouponsUsed || 0),
+      icon: CreditCard,
+      color: 'amber',
+      change: '+24%',
     },
     {
       title: 'Active Fuel Stations',
@@ -76,34 +106,6 @@ export default function SuperAdminDashboardPage() {
       icon: MapPin,
       color: 'green',
       change: '+2',
-    },
-    {
-      title: 'Fraud Alerts',
-      value: superAdminStats?.fraudAlerts || 0,
-      icon: AlertTriangle,
-      color: 'red',
-      change: '-3',
-    },
-    {
-      title: 'Pending Station Requests',
-      value: superAdminStats?.pendingStationRequests || 0,
-      icon: FileCheck,
-      color: 'yellow',
-      change: '+1',
-    },
-    {
-      title: 'Total Beneficiaries',
-      value: formatNumber(superAdminStats?.totalBeneficiaries || 0),
-      icon: Users,
-      color: 'blue',
-      change: '+8%',
-    },
-    {
-      title: 'Department Officers',
-      value: superAdminStats?.totalDepartmentOfficers || 0,
-      icon: UserCheck,
-      color: 'purple',
-      change: '+1',
     },
   ];
 
@@ -128,14 +130,9 @@ export default function SuperAdminDashboardPage() {
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Super Admin Dashboard</h1>
           <p className="text-slate-500 font-medium mt-2">National Fuel Subsidy Management Overview</p>
         </div>
-        <div className="flex gap-4">
-          <Link href="/dashboard/policies-gov" prefetch={false}>
-            <Button variant="primary" size="lg" className="shadow-blue-500/20 hover:shadow-xl transition-all">Manage Policies</Button>
-          </Link>
           <Link href="/dashboard/reports-super-admin" prefetch={false}>
             <Button variant="outline" size="lg" className="bg-white dark:bg-slate-900">View Analytics</Button>
           </Link>
-        </div>
       </div>
 
       {/* Stats Grid */}
@@ -233,12 +230,6 @@ export default function SuperAdminDashboardPage() {
 
         <Card title="Quick Actions">
           <div className="space-y-3">
-            <Link href="/dashboard/policies-gov">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 cursor-pointer transition-colors">
-                <h3 className="font-semibold text-gray-900 dark:text-white">National Policy Framework</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Manage global fuel distribution rules</p>
-              </div>
-            </Link>
             <Link href="/dashboard/users-super-admin">
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 cursor-pointer transition-colors">
                 <h3 className="font-semibold text-gray-900 dark:text-white">Internal Access Control</h3>

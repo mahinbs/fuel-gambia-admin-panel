@@ -5,14 +5,15 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
-import { CheckCircle2, XCircle, Clock, Eye, Search, Filter } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Eye, Search, Filter, CheckSquare } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export default function ApprovalsGovPage() {
   const approvals = [
     { id: '1', type: 'COUPON_REQUEST', entity: 'Ministry of Health', details: '5,000L Petrol', date: '2026-03-16', status: 'PENDING' },
-    { id: '2', type: 'NEW_BENEFICIARY', entity: 'John Doe', details: 'ID: 123456789', date: '2026-03-15', status: 'PENDING' },
-    { id: '3', type: 'STATION_REGISTRATION', entity: 'New Fuel Station X', details: 'Banjul Highway', date: '2026-03-12', status: 'APPROVED' },
+    { id: '2', type: 'NEW_BENEFICIARY', entity: 'John Doe', details: 'ID: 123456789', date: '2026-03-15', status: 'PENDING', enrollmentDate: '2026-03-15' },
+    { id: '3', type: 'STATION_REGISTRATION', entity: 'New Fuel Station X', details: 'Banjul Highway', date: '2026-03-12', status: 'APPROVED', stationCode: 'ST-BJL-001' },
+    { id: '4', type: 'STATION_REGISTRATION', entity: 'Oryx Banjul', details: 'Kairaba Avenue', date: '2026-03-27', status: 'PENDING', stationCode: 'PENDING' },
   ];
 
   const stats = [
@@ -112,7 +113,14 @@ export default function ApprovalsGovPage() {
                       <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Ref: #{a.id}X90</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-slate-500 font-medium italic">{a.details}</TableCell>
+                  <TableCell className="text-slate-500 font-medium italic">
+                    {a.details}
+                    {a.type === 'STATION_REGISTRATION' && a.stationCode && (
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">CODE: {a.stationCode}</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-slate-500 text-xs font-bold">{a.date}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -130,6 +138,20 @@ export default function ApprovalsGovPage() {
                       </button>
                       {a.status === 'PENDING' && (
                         <>
+                          {a.type === 'STATION_REGISTRATION' && (
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="ST-XXX" 
+                                className="w-20 px-2 py-1 text-[10px] font-black border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                defaultValue={a.stationCode === 'PENDING' ? '' : a.stationCode}
+                              />
+                              <button className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all flex items-center gap-1.5" title="Enroll at HQ">
+                                <CheckSquare size={16} strokeWidth={3} />
+                                <span className="text-[10px] font-black uppercase tracking-wider pr-1">Enroll</span>
+                              </button>
+                            </div>
+                          )}
                           <button className="p-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-500 transition-colors" title="Approve">
                             <CheckCircle2 size={18} strokeWidth={2.5} />
                           </button>

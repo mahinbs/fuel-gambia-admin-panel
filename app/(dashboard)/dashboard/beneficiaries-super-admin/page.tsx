@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, CheckCircle2 } from 'lucide-react';
 import { VerificationStatus } from '@/types';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { ProtectedRoute } from '@/navigation/ProtectedRoute';
@@ -106,6 +106,7 @@ export default function BeneficiariesSuperAdminPage() {
                     <TableHeader>Name</TableHeader>
                     <TableHeader>Phone</TableHeader>
                     <TableHeader>Department</TableHeader>
+                    <TableHeader>Enrollment Date</TableHeader>
                     <TableHeader>Status</TableHeader>
                     <TableHeader>Allocation</TableHeader>
                     <TableHeader>Balance</TableHeader>
@@ -119,16 +120,24 @@ export default function BeneficiariesSuperAdminPage() {
                       <TableCell>{beneficiary.name || 'N/A'}</TableCell>
                       <TableCell>{beneficiary.phoneNumber}</TableCell>
                       <TableCell>{beneficiary.departmentName || 'N/A'}</TableCell>
+                      <TableCell>{formatDate(beneficiary.createdAt)}</TableCell>
                       <TableCell>{getStatusBadge(beneficiary.verificationStatus)}</TableCell>
                       <TableCell>{formatCurrency(beneficiary.monthlyAllocation)}</TableCell>
                       <TableCell>{formatCurrency(beneficiary.remainingBalance)}</TableCell>
                       <TableCell>{beneficiary.fuelType}</TableCell>
                       <TableCell>
-                        <Link href={`/dashboard/beneficiaries/${beneficiary.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye size={16} />
-                          </Button>
-                        </Link>
+                        <div className="flex gap-2">
+                          {beneficiary.verificationStatus === VerificationStatus.PENDING && (
+                            <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
+                              <CheckCircle2 size={16} />
+                            </Button>
+                          )}
+                          <Link href={`/dashboard/beneficiaries/${beneficiary.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <Eye size={16} />
+                            </Button>
+                          </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

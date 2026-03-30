@@ -54,7 +54,21 @@ export default function ReportsSuperAdminPage() {
       description: 'Audit logs of administrative actions and platform health metrics.',
       icon: Shield,
       color: 'amber'
+    },
+    {
+      id: 'bespoke-query',
+      title: 'Bespoke Analytics Engine',
+      description: 'Run custom queries against the national database to generate highly specific reports.',
+      icon: Search,
+      color: 'blue'
     }
+  ];
+
+  const bespokeReports = [
+    { title: 'Users by Institution Branch', description: 'Detailed breakdown of staff mapped to specific geographical branches.' },
+    { title: 'Users by Fuel Company', description: 'Onboarded employees filtered by their respective fuel provider.' },
+    { title: 'Sales Report per Company', description: 'Consolidated revenue and volume per corporate entity.' },
+    { title: 'Staff Enrollment Audit', description: 'Track onboarding dates for all staff across all levels.' },
   ];
 
   const intervals: Interval[] = ['Today', 'Weekly', 'Monthly', 'Quarterly', 'Annual', 'Custom'];
@@ -175,9 +189,28 @@ export default function ReportsSuperAdminPage() {
         </div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
       </Card>
+
+      <div className="space-y-6 pt-10">
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Bespoke Query Builder</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {bespokeReports.map((report, idx) => (
+            <Card key={idx} className="p-6 border-none shadow-lg bg-white dark:bg-slate-900 hover:ring-2 hover:ring-blue-500/20 transition-all cursor-pointer group">
+              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-blue-500 transition-colors mb-4">
+                <Filter size={20} />
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-white mb-2">{report.title}</h4>
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{report.description}</p>
+              <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-blue-600">
+                Run Query
+                <ChevronDown size={12} />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 // Placeholder components to fix missing imports if needed
-const Shield = ({ ...props }) => <FileText {...props} />;
+const Shield = ({ ...props }: any) => <FileText {...props} />;

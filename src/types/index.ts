@@ -94,6 +94,7 @@ export interface Attendant extends User {
 export interface Station {
   id: string;
   name: string;
+  stationCode?: string;
   location: string;
   managerId?: string;
   managerName?: string;
@@ -123,6 +124,8 @@ export interface Transaction {
   qrPayload?: any;
   attendantId?: string;
   attendantName?: string;
+  companyName?: string;
+  branchCode?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -253,6 +256,7 @@ export interface AllocationForm {
 export interface StationForm {
   name: string;
   location: string;
+  stationCode: string;
   managerId?: string;
   fuelTypes: FuelType[];
   lowStockThreshold: number;
@@ -368,6 +372,7 @@ export interface StationRequest {
   fuelTypes: FuelType[];
   documents: Document[];
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  stationCode?: string;
   submittedAt: string;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -440,6 +445,11 @@ export interface SuperAdminDashboardStats {
   totalBeneficiaries: number;
   totalDepartmentOfficers: number;
   totalStationManagers: number;
+  totalMobileUsers: number;
+  totalBranchUsers: number;
+  totalHQUsers: number;
+  totalDeptUsers: number;
+  totalCouponsUsed: number;
 }
 
 export interface GovernmentAdminDashboardStats {

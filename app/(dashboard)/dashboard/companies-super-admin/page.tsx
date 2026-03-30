@@ -49,7 +49,10 @@ export default function CompaniesSuperAdminPage() {
               </div>
               
               <h3 className="text-xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">{company.name}</h3>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">{company.type}</p>
+              <div className="flex items-center gap-2 mb-4">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{company.type}</p>
+                <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-1.5 py-0.5 rounded">ID: {company.id}</span>
+              </div>
               
               <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
@@ -85,6 +88,7 @@ export default function CompaniesSuperAdminPage() {
               <Input label="Institution Name" placeholder="e.g. Gambia National Bank" />
               <Input label="Business Sector" placeholder="e.g. Financial Services" />
               <Input label="Registry Email" type="email" placeholder="contact@company.gm" />
+              <Input label="Assigned Company ID" placeholder="e.g. ORX-001" className="bg-blue-50/50" />
             </div>
             <div className="space-y-6">
               <Input label="Verified Phone" placeholder="+220 XXX XXXX" />

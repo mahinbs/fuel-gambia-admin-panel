@@ -127,6 +127,8 @@ export default function TransactionsSuperAdminPage() {
                   <TableRow>
                     <TableHeader>Date</TableHeader>
                     <TableHeader>User</TableHeader>
+                    <TableHeader>Company</TableHeader>
+                    <TableHeader>Branch Code</TableHeader>
                     <TableHeader>Station</TableHeader>
                     <TableHeader>Fuel Type</TableHeader>
                     <TableHeader>Amount</TableHeader>
@@ -141,6 +143,12 @@ export default function TransactionsSuperAdminPage() {
                     <TableRow key={transaction.id}>
                       <TableCell>{formatDateTime(transaction.createdAt)}</TableCell>
                       <TableCell>{transaction.userName || 'N/A'}</TableCell>
+                      <TableCell>{transaction.companyName || 'N/A'}</TableCell>
+                      <TableCell>
+                        <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">
+                          {transaction.branchCode || 'N/A'}
+                        </span>
+                      </TableCell>
                       <TableCell>{transaction.stationName || 'N/A'}</TableCell>
                       <TableCell>
                         <Badge variant="info">{transaction.fuelType}</Badge>

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAppSelector } from '@/store/hooks';
+import { AdminRole } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +12,7 @@ import { Search, MapPin, Plus, MoreVertical, Fuel, Users, BarChart3, Pencil, Ale
 import { cn } from '@/utils/cn';
 
 export default function StationsHQPage() {
+  const { user } = useAppSelector((state) => state.auth);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const stations = [
@@ -87,14 +90,16 @@ export default function StationsHQPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
-                <div className="flex items-center gap-2">
-                  <Fuel size={14} className="text-slate-400" />
-                  <div>
-                    <p className="text-[8px] font-black text-slate-400 uppercase leading-none">Stock</p>
-                    <p className={cn("text-xs font-black", parseInt(s.stock) < 20 ? "text-rose-500" : "text-slate-700 dark:text-slate-300")}>{s.stock}</p>
+                {user?.role !== AdminRole.SUPER_ADMIN && (
+                  <div className="flex items-center gap-2">
+                    <Fuel size={14} className="text-slate-400" />
+                    <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase leading-none">Stock</p>
+                      <p className={cn("text-xs font-black", parseInt(s.stock) < 20 ? "text-rose-500" : "text-slate-700 dark:text-slate-300")}>{s.stock}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
+                )}
+                <div className="flex items-center gap-2 {user?.role === AdminRole.SUPER_ADMIN ? 'col-span-2' : ''}">
                   <Users size={14} className="text-slate-400" />
                   <div>
                     <p className="text-[8px] font-black text-slate-400 uppercase leading-none">Staff</p>

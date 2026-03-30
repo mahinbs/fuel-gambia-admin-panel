@@ -127,7 +127,8 @@ export default function LoginPage() {
               {[
                 { label: 'Super Admin', email: 'superadmin@fuelgambia.com' },
                 { label: 'Dept. Officer', email: 'deptofficer@fuelgambia.com' },
-                { label: 'Station HQ', email: 'stationhq@fuelgambia.com' }
+                { label: 'Station HQ', email: 'stationhq@fuelgambia.com' },
+                { label: 'Station Manager', email: 'stationmanager@fuelgambia.com' }
               ].map((cred) => (
                 <div key={cred.email} className="flex justify-between items-center group">
                   <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{cred.label}</span>
