@@ -23,6 +23,11 @@ const generateSuperAdminStats = (): SuperAdminDashboardStats => ({
   totalBeneficiaries: 1250,
   totalDepartmentOfficers: 15,
   totalStationManagers: 28,
+  totalMobileUsers: 850,
+  totalBranchUsers: 42,
+  totalHQUsers: 10,
+  totalDeptUsers: 35,
+  totalCouponsUsed: 1540,
 });
 
 const generateGovernmentAdminStats = (): GovernmentAdminDashboardStats => ({
