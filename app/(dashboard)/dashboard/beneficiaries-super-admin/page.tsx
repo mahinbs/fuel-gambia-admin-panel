@@ -5,12 +5,11 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchBeneficiaries } from '@/store/slices/beneficiariesSlice';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { Table, TableHead, TableBody, TableRow, TableHeader, TableCell } from '@/components/ui/Table';
+import { DataTable } from '@/components/ui/DataTable';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { Search, Eye, CheckCircle2 } from 'lucide-react';
-import { VerificationStatus } from '@/types';
+import { Search, Eye, CheckCircle2, UserCheck, Mail, Phone, Building2, ArrowRight } from 'lucide-react';
+import { VerificationStatus, Beneficiary } from '@/types';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { ProtectedRoute } from '@/navigation/ProtectedRoute';
 import { AdminRole } from '@/types';
@@ -18,157 +17,164 @@ import Link from 'next/link';
 
 export default function BeneficiariesSuperAdminPage() {
   const dispatch = useAppDispatch();
-  const { beneficiaries, total, page, loading } = useAppSelector((state) => state.beneficiaries);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const { beneficiaries, total, loading } = useAppSelector((state) => state.beneficiaries);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    dispatch(
-      fetchBeneficiaries({
-        page: currentPage,
-        search,
-        status: statusFilter || undefined,
-        department: departmentFilter || undefined,
-      })
-    );
-  }, [dispatch, currentPage, search, statusFilter, departmentFilter]);
+    dispatch(fetchBeneficiaries({ page: currentPage }));
+  }, [dispatch, currentPage]);
 
-  const getStatusBadge = (status: VerificationStatus) => {
-    const variants = {
-      [VerificationStatus.PENDING]: 'warning',
-      [VerificationStatus.APPROVED]: 'success',
-      [VerificationStatus.REJECTED]: 'error',
-    } as const;
-    return <Badge variant={variants[status]}>{status}</Badge>;
-  };
+  const columns = [
+    {
+      key: 'name',
+      label: 'Beneficiary Information',
+      render: (val: string, row: Beneficiary) => (
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-blue-600/10 flex items-center justify-center text-blue-600">
+            <UserCheck size={20} strokeWidth={2.5} />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-slate-900 dark:text-white">{val || 'Unnamed User'}</span>
+            <div className="flex items-center gap-3 mt-0.5">
+              <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-1">
+                <Phone size={10} /> {row.phoneNumber}
+              </span>
+              {row.email && (
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-1">
+                  <Mail size={10} /> {row.email}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'departmentName',
+      label: 'Institutional Link',
+      render: (val: string) => (
+        <div className="flex items-center gap-2">
+          <Building2 size={14} className="text-slate-400" />
+          <span className="font-bold text-slate-700 dark:text-slate-300">{val || 'N/A'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'verificationStatus',
+      label: 'Status',
+      render: (val: VerificationStatus) => {
+        const variants = {
+          [VerificationStatus.PENDING]: 'warning',
+          [VerificationStatus.APPROVED]: 'success',
+          [VerificationStatus.REJECTED]: 'error',
+        } as const;
+        return (
+          <Badge variant={variants[val]} className="font-black uppercase tracking-wider text-[9px] px-2 py-0.5 shadow-sm">
+            {val}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'monthlyAllocation',
+      label: 'Allocated Budget',
+      sortable: true,
+      render: (val: number) => (
+        <div className="flex flex-col">
+          <span className="font-black text-slate-900 dark:text-white">{formatCurrency(val)}</span>
+          <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Per Month</span>
+        </div>
+      ),
+    },
+    {
+      key: 'remainingBalance',
+      label: 'Current Balance',
+      render: (val: number) => (
+        <span className="font-black text-blue-600">{formatCurrency(val)}</span>
+      ),
+    },
+    {
+      key: 'fuelType',
+      label: 'Fuel Type',
+      render: (val: string) => (
+        <Badge variant="info" className="font-black uppercase tracking-wider text-[9px] px-2 py-0.5">
+          {val}
+        </Badge>
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      render: (_: any, row: Beneficiary) => (
+        <div className="flex justify-end gap-2">
+          {row.verificationStatus === VerificationStatus.PENDING && (
+            <button className="p-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-emerald-500 transition-colors" title="Verify Now">
+              <CheckCircle2 size={18} strokeWidth={2.5} />
+            </button>
+          )}
+          <Link href={`/dashboard/beneficiaries/${row.id}`}>
+            <button className="p-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-500/10 text-blue-500 transition-colors">
+              <Eye size={18} strokeWidth={2.5} />
+            </button>
+          </Link>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <ProtectedRoute requiredRole={AdminRole.SUPER_ADMIN}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Beneficiaries Overview - Super Admin</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">View all beneficiaries across all departments</p>
-        </div>
-
-        <Card>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <Input
-                placeholder="Search beneficiaries..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">All Status</option>
-              <option value={VerificationStatus.PENDING}>Pending</option>
-              <option value={VerificationStatus.APPROVED}>Approved</option>
-              <option value={VerificationStatus.REJECTED}>Rejected</option>
-            </select>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            >
-              <option value="">All Departments</option>
-              <option value="Health">Health</option>
-              <option value="Education">Education</option>
-              <option value="Finance">Finance</option>
-              <option value="Transport">Transport</option>
-              <option value="Agriculture">Agriculture</option>
-            </select>
-            <Button variant="primary" onClick={() => setCurrentPage(1)}>
-              Apply Filters
+      <div className="space-y-10 pb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Beneficiary Registry</h1>
+            <p className="text-slate-500 font-medium mt-2">Manage and verify platform-wide fuel subsidy recipients</p>
+          </div>
+          <div className="flex gap-4">
+            <Button variant="outline" size="lg" className="bg-white dark:bg-slate-900 shadow-sm font-black text-xs uppercase tracking-widest">
+              Export Database
+            </Button>
+            <Button variant="primary" size="lg" className="shadow-blue-500/20 hover:shadow-xl transition-all">
+              Enroll New
             </Button>
           </div>
-        </Card>
+        </div>
 
-        <Card>
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} height={60} />
-              ))}
+        <Card className="p-0 border-none shadow-2xl overflow-visible bg-transparent">
+          <DataTable
+            columns={columns}
+            data={beneficiaries}
+            searchable
+            searchPlaceholder="Search by name, phone, or department..."
+            className="bg-transparent"
+          />
+          
+          <div className="flex items-center justify-between mt-8 px-8 pb-8">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              Showing {beneficiaries.length} of {total} beneficiaries
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-xl font-black text-[10px] uppercase tracking-widest"
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={beneficiaries.length < 20}
+                className="rounded-xl font-black text-[10px] uppercase tracking-widest"
+              >
+                Next
+                <ArrowRight size={14} className="ml-2" />
+              </Button>
             </div>
-          ) : (
-            <>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableHeader>Name</TableHeader>
-                    <TableHeader>Phone</TableHeader>
-                    <TableHeader>Department</TableHeader>
-                    <TableHeader>Enrollment Date</TableHeader>
-                    <TableHeader>Status</TableHeader>
-                    <TableHeader>Allocation</TableHeader>
-                    <TableHeader>Balance</TableHeader>
-                    <TableHeader>Fuel Type</TableHeader>
-                    <TableHeader>Actions</TableHeader>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {beneficiaries.map((beneficiary) => (
-                    <TableRow key={beneficiary.id}>
-                      <TableCell>{beneficiary.name || 'N/A'}</TableCell>
-                      <TableCell>{beneficiary.phoneNumber}</TableCell>
-                      <TableCell>{beneficiary.departmentName || 'N/A'}</TableCell>
-                      <TableCell>{formatDate(beneficiary.createdAt)}</TableCell>
-                      <TableCell>{getStatusBadge(beneficiary.verificationStatus)}</TableCell>
-                      <TableCell>{formatCurrency(beneficiary.monthlyAllocation)}</TableCell>
-                      <TableCell>{formatCurrency(beneficiary.remainingBalance)}</TableCell>
-                      <TableCell>{beneficiary.fuelType}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {beneficiary.verificationStatus === VerificationStatus.PENDING && (
-                            <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50">
-                              <CheckCircle2 size={16} />
-                            </Button>
-                          )}
-                          <Link href={`/dashboard/beneficiaries/${beneficiary.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye size={16} />
-                            </Button>
-                          </Link>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {beneficiaries.length} of {total} beneficiaries
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    disabled={beneficiaries.length < 20}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          </div>
         </Card>
       </div>
     </ProtectedRoute>

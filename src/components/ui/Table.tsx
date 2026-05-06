@@ -53,12 +53,14 @@ export const TableRow: React.FC<{ children: React.ReactNode; className?: string;
   );
 };
 
-export const TableHeader: React.FC<{ children: React.ReactNode; className?: string }> = ({
+export const TableHeader: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void }> = ({
   children,
   className,
+  onClick,
 }) => {
   return (
     <th
+      onClick={onClick}
       className={cn(
         'px-8 py-4 text-left text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest',
         className

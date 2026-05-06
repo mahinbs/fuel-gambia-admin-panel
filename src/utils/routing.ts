@@ -15,20 +15,25 @@ export const canAccessRoute = (userRole: AdminRole, route: string): boolean => {
   const routePermissions: Record<string, AdminRole[]> = {
     // Super Admin routes
     '/dashboard/super-admin': [AdminRole.SUPER_ADMIN],
+    '/dashboard/transactions-super-admin': [AdminRole.SUPER_ADMIN],
+    '/dashboard/beneficiaries-super-admin': [AdminRole.SUPER_ADMIN],
     '/dashboard/companies-super-admin': [AdminRole.SUPER_ADMIN],
-    '/dashboard/users-super-admin': [AdminRole.SUPER_ADMIN],
     '/dashboard/income-super-admin': [AdminRole.SUPER_ADMIN],
     '/dashboard/consolidation-super-admin': [AdminRole.SUPER_ADMIN],
     '/dashboard/reports-super-admin': [AdminRole.SUPER_ADMIN],
+    '/dashboard/users-super-admin': [AdminRole.SUPER_ADMIN],
+    '/dashboard/notifications-super-admin': [AdminRole.SUPER_ADMIN],
+    '/dashboard/settings-super-admin': [AdminRole.SUPER_ADMIN, AdminRole.GOVERNMENT_ADMIN, AdminRole.STATION_HQ, AdminRole.STATION_BRANCH],
     
     // Government Admin routes
     '/dashboard/government-admin': [AdminRole.GOVERNMENT_ADMIN],
     '/dashboard/beneficiaries-gov': [AdminRole.GOVERNMENT_ADMIN],
     '/dashboard/allocations-gov': [AdminRole.GOVERNMENT_ADMIN],
     '/dashboard/companies-gov': [AdminRole.GOVERNMENT_ADMIN],
-    '/dashboard/approvals-gov': [AdminRole.GOVERNMENT_ADMIN],
+    '/dashboard/approvals-gov': [AdminRole.GOVERNMENT_ADMIN, AdminRole.SUPER_ADMIN],
     '/dashboard/policies-gov': [AdminRole.GOVERNMENT_ADMIN],
     '/dashboard/reports-government-admin': [AdminRole.GOVERNMENT_ADMIN],
+    '/dashboard/usage-monitoring-gov': [AdminRole.GOVERNMENT_ADMIN],
     
     // Station HQ routes
     '/dashboard/hq-admin': [AdminRole.STATION_HQ],

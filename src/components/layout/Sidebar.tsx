@@ -61,7 +61,7 @@ const allMenuItems: MenuItem[] = [
   { icon: UserCog, label: 'User Management', path: '/dashboard/beneficiaries-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: ShoppingCart, label: 'Fuel Allocation', path: '/dashboard/allocations-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: Building, label: 'Companies Onboarding', path: '/dashboard/companies-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
-  { icon: CheckSquare, label: 'Approvals', path: '/dashboard/approvals-gov', roles: [AdminRole.GOVERNMENT_ADMIN, AdminRole.SUPER_ADMIN] },
+  { icon: CheckSquare, label: 'Approvals', path: '/dashboard/approvals-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: Shield, label: 'Policy Management', path: '/dashboard/policies-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: FileText, label: 'Reports', path: '/dashboard/reports-government-admin', roles: [AdminRole.GOVERNMENT_ADMIN] },
   
@@ -84,7 +84,7 @@ const allMenuItems: MenuItem[] = [
   { icon: TrendingUp, label: 'Daily Reconciliation', path: '/dashboard/reconciliation-branch', roles: [AdminRole.STATION_BRANCH] },
   { icon: FileText, label: 'Reporting', path: '/dashboard/reports-branch', roles: [AdminRole.STATION_BRANCH] },
   // Common Settings (available to all)
-  { icon: Settings, label: 'Settings', path: '/dashboard/settings-super-admin', roles: [AdminRole.STATION_HQ, AdminRole.STATION_BRANCH, AdminRole.GOVERNMENT_ADMIN] },
+  { icon: Settings, label: 'Settings', path: '/dashboard/settings-super-admin', roles: [AdminRole.SUPER_ADMIN, AdminRole.STATION_HQ, AdminRole.STATION_BRANCH, AdminRole.GOVERNMENT_ADMIN] },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -93,9 +93,31 @@ export const Sidebar: React.FC = () => {
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
 
-  const menuItems = useMemo(() => {
+  const menuSections = useMemo(() => {
     if (!user?.role) return [];
-    return allMenuItems.filter(item => item.roles.includes(user.role));
+    
+    const items = allMenuItems.filter(item => item.roles.includes(user.role));
+    
+    // Categorize items
+    const overview = items.filter(i => i.label === 'Overview');
+    const management = items.filter(i => 
+      ['Company Onboarding', 'Companies Onboarding', 'User Management', 'Staff Management', 'Staff/User Management', 'Pump Attendants', 'Station Management'].includes(i.label)
+    );
+    const operations = items.filter(i => 
+      ['Receive Income', 'Fuel Consumption', 'Fuel Allocation', 'Approvals', 'Policy Management', 'Fuel Ordering', 'Coupon Billing', 'Onboarding Staff', 'Shift Management', 'Inventory Management', 'Daily Reconciliation'].includes(i.label)
+    );
+    const analytics = items.filter(i => 
+      ['Reports', 'Reporting'].includes(i.label)
+    );
+    const system = items.filter(i => i.label === 'Settings');
+
+    return [
+      { title: 'Overview', items: overview },
+      { title: 'Management', items: management },
+      { title: 'Operations', items: operations },
+      { title: 'Analytics', items: analytics },
+      { title: 'System', items: system },
+    ].filter(section => section.items.length > 0);
   }, [user?.role]);
 
   const handleLogout = async () => {
@@ -122,17 +144,17 @@ export const Sidebar: React.FC = () => {
     <div className="h-screen w-64 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl">
       <div className="p-8">
         <div className="flex items-center gap-3 mb-6">
-          <div className="bg-blue-600 p-2 rounded-xl">
+          <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/30">
             <Fuel className="text-white" size={24} />
           </div>
           <div>
             <h1 className="text-lg font-bold text-white tracking-tight">Fuel Gambia</h1>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Admin System</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black">Admin System</p>
           </div>
         </div>
         
         {user?.role && (
-          <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+          <div className="bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50">
             <p className="text-[10px] text-slate-500 uppercase font-black mb-1">Access Level</p>
             <p className="text-xs font-bold text-blue-400">
               {getRoleLabel(user.role)}
@@ -142,32 +164,42 @@ export const Sidebar: React.FC = () => {
       </div>
       
       <nav className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar">
-        <ul className="space-y-1.5">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
-            
-            return (
-              <li key={item.path}>
-                <Link
-                  href={item.path}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group',
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                  )}
-                >
-                  <Icon size={18} className={cn(
-                    'transition-colors',
-                    isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'
-                  )} />
-                  <span className="text-sm font-semibold">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {menuSections.map((section) => (
+          <div key={section.title} className="mb-6">
+            <h3 className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">
+              {section.title}
+            </h3>
+            <ul className="space-y-1">
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
+                
+                return (
+                  <li key={item.path}>
+                    <Link
+                      href={item.path}
+                      className={cn(
+                        'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group relative',
+                        isActive
+                          ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20'
+                          : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+                      )}
+                    >
+                      <Icon size={18} className={cn(
+                        'transition-colors duration-300',
+                        isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'
+                      )} />
+                      <span className="text-sm font-bold tracking-tight">{item.label}</span>
+                      {isActive && (
+                        <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
       
       <div className="p-6 mt-auto">
