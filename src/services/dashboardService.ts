@@ -1,156 +1,23 @@
-import { DashboardStats, ChartData, SuperAdminDashboardStats, GovernmentAdminDashboardStats, StationAdminDashboardStats } from '@/types';
+import { dashboardFunctions } from '@/supabase';
+import {
+  DashboardStats,
+  ChartData,
+  SuperAdminDashboardStats,
+  GovernmentAdminDashboardStats,
+  StationAdminDashboardStats,
+} from '@/types';
 
-// Mock data generators
-const generateMockStats = (): DashboardStats => ({
-  totalBeneficiaries: 1250,
-  pendingVerifications: 45,
-  totalSubsidyIssued: 2500000,
-  totalCommercialRevenue: 1850000,
-  todayTransactions: 342,
-  activeStations: 28,
-  lowInventoryAlerts: 5,
-  failedQRScans: 12,
-  paymentFailures: 8,
-});
-
-const generateSuperAdminStats = (): SuperAdminDashboardStats => ({
-  totalNationalBudget: 50000000,
-  totalFuelDispensed: 1250000,
-  monthlySubsidyUtilization: 68,
-  activeFuelStations: 28,
-  fraudAlerts: 12,
-  pendingStationRequests: 5,
-  totalBeneficiaries: 1250,
-  totalDepartmentOfficers: 15,
-  totalStationManagers: 28,
-  totalMobileUsers: 850,
-  totalBranchUsers: 42,
-  totalHQUsers: 10,
-  totalDeptUsers: 35,
-  totalCouponsUsed: 1540,
-});
-
-const generateGovernmentAdminStats = (): GovernmentAdminDashboardStats => ({
-  totalBeneficiaries: 450,
-  monthlyAllocatedFuel: 45000,
-  usedFuel: 32000,
-  remainingFuel: 13000,
-  pendingVerifications: 23,
-  activeCoupons: 380,
-  expiredCoupons: 12,
-  totalAllocations: 450,
-});
-
-const generateStationAdminStats = (): StationAdminDashboardStats => ({
-  todaySales: 125000,
-  monthlyFuelDispensed: 85000,
-  petrolStock: 12000,
-  dieselStock: 15000,
-  lowStockAlerts: 2,
-  pendingReimbursements: 450000,
-  todayTransactions: 85,
-  activeAttendants: 6,
-});
-
-const generateMonthlyTrend = (): ChartData[] => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return months.map((month) => ({
-    name: month,
-    value: Math.floor(Math.random() * 500000) + 100000,
-  }));
-};
-
-const generateSalesTrend = (): ChartData[] => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return months.map((month) => ({
-    name: month,
-    value: Math.floor(Math.random() * 300000) + 50000,
-  }));
-};
-
-const generateFuelDistribution = (): ChartData[] => [
-  { name: 'Petrol', value: 65 },
-  { name: 'Diesel', value: 35 },
-];
-
-const generateStationVolume = (): ChartData[] => {
-  const stations = ['Station A', 'Station B', 'Station C', 'Station D', 'Station E'];
-  return stations.map((station) => ({
-    name: station,
-    value: Math.floor(Math.random() * 50000) + 10000,
-  }));
-};
-
-const generateMonthlyFuelUsage = (): ChartData[] => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  return months.map((month) => ({
-    name: month,
-    subsidy: Math.floor(Math.random() * 200000) + 100000,
-    commercial: Math.floor(Math.random() * 150000) + 50000,
-  }));
-};
-
-const generateBudgetVsConsumption = (): ChartData[] => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  return months.map((month) => ({
-    name: month,
-    budget: Math.floor(Math.random() * 5000000) + 3000000,
-    consumption: Math.floor(Math.random() * 4500000) + 2500000,
-  }));
-};
-
-const generateSubsidyVsCommercial = (): ChartData[] => [
-  { name: 'Subsidy', value: 68 },
-  { name: 'Commercial', value: 32 },
-];
-
-const generateMonthlyAllocationTrend = (): ChartData[] => {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-  return months.map((month) => ({
-    name: month,
-    allocated: Math.floor(Math.random() * 50000) + 30000,
-    used: Math.floor(Math.random() * 40000) + 20000,
-  }));
-};
-
-const generateDepartmentBreakdown = (): ChartData[] => {
-  const departments = ['Health', 'Education', 'Transport', 'Agriculture'];
-  return departments.map((dept) => ({
-    name: dept,
-    allocated: Math.floor(Math.random() * 15000) + 10000,
-    used: Math.floor(Math.random() * 12000) + 8000,
-  }));
-};
-
-const generateUsageMonitoring = (): ChartData[] => {
-  const beneficiaries = ['Beneficiary A', 'Beneficiary B', 'Beneficiary C', 'Beneficiary D'];
-  return beneficiaries.map((ben) => ({
-    name: ben,
-    value: Math.floor(Math.random() * 500) + 200,
-  }));
-};
-
-const generateDailySalesTrend = (): ChartData[] => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return days.map((day) => ({
-    name: day,
-    sales: Math.floor(Math.random() * 200000) + 100000,
-  }));
-};
-
-const generateInventoryLevels = (): ChartData[] => [
-  { name: 'Petrol', current: 12000, threshold: 5000 },
-  { name: 'Diesel', current: 15000, threshold: 5000 },
-];
-
-const generateTransactionTrend = (): ChartData[] => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return days.map((day) => ({
-    name: day,
-    subsidy: Math.floor(Math.random() * 50) + 20,
-    commercial: Math.floor(Math.random() * 40) + 15,
-  }));
-};
+/** Map raw monthly transaction data to chart series by month */
+function buildMonthlyTrend(transactions: Array<{ fuel_type: string; liters: number; created_at: string }>, key: string): ChartData[] {
+  const months: Record<string, number> = {};
+  transactions.forEach((t) => {
+    const month = t.created_at.slice(0, 7); // YYYY-MM
+    months[month] = (months[month] || 0) + Number(t.liters);
+  });
+  return Object.entries(months)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([label, value]) => ({ label, value }));
+}
 
 export const dashboardService = {
   async getDashboardData(): Promise<{
@@ -160,17 +27,38 @@ export const dashboardService = {
     fuelTypeDistribution: ChartData[];
     stationWiseVolume: ChartData[];
   }> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          stats: generateMockStats(),
-          monthlySubsidyTrend: generateMonthlyTrend(),
-          paidFuelSalesTrend: generateSalesTrend(),
-          fuelTypeDistribution: generateFuelDistribution(),
-          stationWiseVolume: generateStationVolume(),
-        });
-      }, 500);
-    });
+    const stats = await dashboardFunctions.getStats('SUPER_ADMIN');
+    const trend = await dashboardFunctions.getMonthlyFuelTrend();
+    const inventories = await dashboardFunctions.getInventoryLevels();
+
+    const subsidyTrend = buildMonthlyTrend(
+      trend.filter((t: any) => t.mode === 'SUBSIDY'),
+      'liters'
+    );
+    const paidTrend = buildMonthlyTrend(
+      trend.filter((t: any) => t.mode === 'PAID'),
+      'liters'
+    );
+
+    // Fuel type distribution
+    const petrolTotal = trend.filter((t: any) => t.fuel_type === 'PETROL').reduce((s: number, t: any) => s + Number(t.liters), 0);
+    const dieselTotal = trend.filter((t: any) => t.fuel_type === 'DIESEL').reduce((s: number, t: any) => s + Number(t.liters), 0);
+
+    const stationVolume: ChartData[] = inventories.map((s: any) => ({
+      label: s.name,
+      value: Number(s.petrol_stock) + Number(s.diesel_stock),
+    }));
+
+    return {
+      stats: stats as DashboardStats,
+      monthlySubsidyTrend: subsidyTrend,
+      paidFuelSalesTrend: paidTrend,
+      fuelTypeDistribution: [
+        { label: 'Petrol', value: petrolTotal },
+        { label: 'Diesel', value: dieselTotal },
+      ],
+      stationWiseVolume: stationVolume,
+    };
   },
 
   async getSuperAdminDashboard(): Promise<{
@@ -179,16 +67,30 @@ export const dashboardService = {
     budgetVsConsumption: ChartData[];
     subsidyVsCommercial: ChartData[];
   }> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          stats: generateSuperAdminStats(),
-          monthlyFuelUsage: generateMonthlyFuelUsage(),
-          budgetVsConsumption: generateBudgetVsConsumption(),
-          subsidyVsCommercial: generateSubsidyVsCommercial(),
-        });
-      }, 500);
-    });
+    const raw = await dashboardFunctions.getStats('SUPER_ADMIN');
+    const trend = await dashboardFunctions.getMonthlyFuelTrend();
+
+    return {
+      stats: {
+        totalNationalBudget: (raw as any).total_subsidy_value || 0,
+        totalFuelDispensed: 0,
+        monthlySubsidyUtilization: 0,
+        activeFuelStations: (raw as any).active_stations || 0,
+        fraudAlerts: 0,
+        pendingStationRequests: 0,
+        totalBeneficiaries: (raw as any).total_beneficiaries || 0,
+        totalDepartmentOfficers: 0,
+        totalStationManagers: 0,
+        totalMobileUsers: (raw as any).total_customers || 0,
+        totalBranchUsers: 0,
+        totalHQUsers: 0,
+        totalDeptUsers: 0,
+        totalCouponsUsed: 0,
+      } as SuperAdminDashboardStats,
+      monthlyFuelUsage: buildMonthlyTrend(trend as any, 'liters'),
+      budgetVsConsumption: [],
+      subsidyVsCommercial: [],
+    };
   },
 
   async getGovernmentAdminDashboard(): Promise<{
@@ -197,16 +99,23 @@ export const dashboardService = {
     departmentBreakdown: ChartData[];
     usageMonitoring: ChartData[];
   }> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          stats: generateGovernmentAdminStats(),
-          monthlyAllocationTrend: generateMonthlyAllocationTrend(),
-          departmentBreakdown: generateDepartmentBreakdown(),
-          usageMonitoring: generateUsageMonitoring(),
-        });
-      }, 500);
-    });
+    const raw = await dashboardFunctions.getStats('GOVERNMENT_ADMIN');
+
+    return {
+      stats: {
+        totalBeneficiaries: (raw as any).total_beneficiaries || 0,
+        monthlyAllocatedFuel: (raw as any).total_allocated_liters || 0,
+        usedFuel: (raw as any).total_used_liters || 0,
+        remainingFuel: ((raw as any).total_allocated_liters || 0) - ((raw as any).total_used_liters || 0),
+        pendingVerifications: (raw as any).pending_verifications || 0,
+        activeCoupons: (raw as any).active_coupons || 0,
+        expiredCoupons: 0,
+        totalAllocations: (raw as any).total_allocations || 0,
+      } as GovernmentAdminDashboardStats,
+      monthlyAllocationTrend: [],
+      departmentBreakdown: [],
+      usageMonitoring: [],
+    };
   },
 
   async getHQDashboard(): Promise<{
@@ -215,16 +124,27 @@ export const dashboardService = {
     inventoryLevels: ChartData[];
     transactionTrend: ChartData[];
   }> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          stats: generateStationAdminStats(),
-          dailySalesTrend: generateDailySalesTrend(),
-          inventoryLevels: generateInventoryLevels(),
-          transactionTrend: generateTransactionTrend(),
-        });
-      }, 500);
-    });
+    const raw = await dashboardFunctions.getStats('STATION_HQ');
+    const inventories = await dashboardFunctions.getInventoryLevels();
+
+    return {
+      stats: {
+        todaySales: (raw as any).today_revenue || 0,
+        monthlyFuelDispensed: 0,
+        petrolStock: inventories.reduce((s: number, i: any) => s + Number(i.petrol_stock), 0),
+        dieselStock: inventories.reduce((s: number, i: any) => s + Number(i.diesel_stock), 0),
+        lowStockAlerts: (raw as any).low_stock_stations || 0,
+        pendingReimbursements: 0,
+        todayTransactions: (raw as any).today_transactions || 0,
+        activeAttendants: (raw as any).total_attendants || 0,
+      } as StationAdminDashboardStats,
+      dailySalesTrend: [],
+      inventoryLevels: inventories.map((i: any) => ({
+        label: i.name,
+        value: Number(i.petrol_stock) + Number(i.diesel_stock),
+      })),
+      transactionTrend: [],
+    };
   },
 
   async getBranchDashboard(): Promise<{
@@ -233,15 +153,26 @@ export const dashboardService = {
     inventoryLevels: ChartData[];
     transactionTrend: ChartData[];
   }> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          stats: generateStationAdminStats(),
-          dailySalesTrend: generateDailySalesTrend(),
-          inventoryLevels: generateInventoryLevels(),
-          transactionTrend: generateTransactionTrend(),
-        });
-      }, 500);
-    });
+    const raw = await dashboardFunctions.getStats('STATION_BRANCH');
+    const inventories = await dashboardFunctions.getInventoryLevels();
+
+    return {
+      stats: {
+        todaySales: (raw as any).today_revenue || 0,
+        monthlyFuelDispensed: 0,
+        petrolStock: (raw as any).petrol_stock || 0,
+        dieselStock: (raw as any).diesel_stock || 0,
+        lowStockAlerts: 0,
+        pendingReimbursements: (raw as any).pending_reconciliations || 0,
+        todayTransactions: (raw as any).today_transactions || 0,
+        activeAttendants: (raw as any).active_attendants || 0,
+      } as StationAdminDashboardStats,
+      dailySalesTrend: [],
+      inventoryLevels: inventories.map((i: any) => ({
+        label: i.name,
+        value: Number(i.petrol_stock) + Number(i.diesel_stock),
+      })),
+      transactionTrend: [],
+    };
   },
 };

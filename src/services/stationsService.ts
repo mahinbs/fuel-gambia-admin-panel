@@ -1,28 +1,8 @@
+import { createClient } from '@/utils/supabase/client';
 import { Station, PaginatedResponse, FuelType } from '@/types';
 import { PAGE_SIZE } from '@/utils/constants';
 
-// Mock stations data
-const generateMockStations = (count: number): Station[] => {
-  const locations = ['Banjul', 'Serrekunda', 'Brikama', 'Basse', 'Farafenni'];
-  const statuses: Station['status'][] = ['ACTIVE', 'ACTIVE', 'ACTIVE', 'INACTIVE', 'MAINTENANCE'];
-  
-  return Array.from({ length: count }, (_, i) => ({
-    id: `station_${i + 1}`,
-    name: `Station ${String.fromCharCode(65 + i)}`,
-    location: locations[i % locations.length],
-    managerId: `mgr_${i + 1}`,
-    managerName: `Manager ${i + 1}`,
-    fuelTypes: [FuelType.PETROL, FuelType.DIESEL],
-    petrolStock: Math.floor(Math.random() * 10000) + 1000,
-    dieselStock: Math.floor(Math.random() * 10000) + 1000,
-    lowStockThreshold: 1000,
-    status: statuses[i % statuses.length],
-    createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-    lastSync: new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000).toISOString(),
-  }));
-};
-
-const MOCK_STATIONS = generateMockStations(30);
+const supabase = createClient();
 
 export const stationsService = {
   async getStations(params: {
@@ -30,83 +10,133 @@ export const stationsService = {
     search?: string;
     status?: string;
   }): Promise<PaginatedResponse<Station>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let filtered = [...MOCK_STATIONS];
-        
-        if (params.search) {
-          const searchLower = params.search.toLowerCase();
-          filtered = filtered.filter(
-            (s) =>
-              s.name.toLowerCase().includes(searchLower) ||
-              s.location.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        if (params.status) {
-          filtered = filtered.filter((s) => s.status === params.status);
-        }
-        
-        const page = params.page || 1;
-        const start = (page - 1) * PAGE_SIZE;
-        const end = start + PAGE_SIZE;
-        
-        resolve({
-          data: filtered.slice(start, end),
-          total: filtered.length,
-          page,
-          limit: PAGE_SIZE,
-          totalPages: Math.ceil(filtered.length / PAGE_SIZE),
-        });
-      }, 500);
-    });
+    const page = params.page || 1;
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let query = supabase
+      .from('stations')
+      .select('*', { count: 'exact' });
+
+    if (params.search) {
+      query = query.or(`name.ilike.%${params.search}%,location.ilike.%${params.search}%`);
+    }
+
+    if (params.status) {
+      query = query.eq('status', params.status);
+    }
+
+    const { data, count, error } = await query
+      .order('name', { ascending: true })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const formattedData: Station[] = (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      stationCode: item.station_code,
+      location: item.location,
+      fuelTypes: item.fuel_types as FuelType[],
+      petrolStock: Number(item.petrol_stock),
+      dieselStock: Number(item.diesel_stock),
+      lowStockThreshold: Number(item.low_stock_threshold),
+      status: item.status,
+      createdAt: item.created_at,
+    }));
+
+    return {
+      data: formattedData,
+      total: count || 0,
+      page,
+      limit: PAGE_SIZE,
+      totalPages: Math.ceil((count || 0) / PAGE_SIZE),
+    };
   },
 
   async getStationById(id: string): Promise<Station> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const station = MOCK_STATIONS.find((s) => s.id === id);
-        if (station) {
-          resolve(station);
-        } else {
-          reject(new Error('Station not found'));
-        }
-      }, 300);
-    });
+    const { data, error } = await supabase
+      .from('stations')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      name: data.name,
+      stationCode: data.station_code,
+      location: data.location,
+      fuelTypes: data.fuel_types as FuelType[],
+      petrolStock: Number(data.petrol_stock),
+      dieselStock: Number(data.diesel_stock),
+      lowStockThreshold: Number(data.low_stock_threshold),
+      status: data.status,
+      createdAt: data.created_at,
+    };
   },
 
   async createStation(data: Partial<Station>): Promise<Station> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newStation: Station = {
-          id: `station_${MOCK_STATIONS.length + 1}`,
-          name: data.name || 'New Station',
-          location: data.location || '',
-          fuelTypes: data.fuelTypes || [FuelType.PETROL, FuelType.DIESEL],
-          petrolStock: 0,
-          dieselStock: 0,
-          lowStockThreshold: data.lowStockThreshold || 1000,
-          status: 'ACTIVE',
-          createdAt: new Date().toISOString(),
-          ...data,
-        };
-        MOCK_STATIONS.push(newStation);
-        resolve(newStation);
-      }, 500);
-    });
+    const { data: newStation, error } = await supabase
+      .from('stations')
+      .insert({
+        name: data.name,
+        station_code: data.stationCode,
+        location: data.location,
+        fuel_types: data.fuelTypes,
+        low_stock_threshold: data.lowStockThreshold,
+        status: data.status || 'ACTIVE',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: newStation.id,
+      name: newStation.name,
+      stationCode: newStation.station_code,
+      location: newStation.location,
+      fuelTypes: newStation.fuel_types as FuelType[],
+      petrolStock: Number(newStation.petrol_stock),
+      dieselStock: Number(newStation.diesel_stock),
+      lowStockThreshold: Number(newStation.low_stock_threshold),
+      status: newStation.status,
+      createdAt: newStation.created_at,
+    };
   },
 
   async updateStation(id: string, updates: Partial<Station>): Promise<Station> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = MOCK_STATIONS.findIndex((s) => s.id === id);
-        if (index !== -1) {
-          MOCK_STATIONS[index] = { ...MOCK_STATIONS[index], ...updates };
-          resolve(MOCK_STATIONS[index]);
-        } else {
-          reject(new Error('Station not found'));
-        }
-      }, 500);
-    });
+    const { data: updatedStation, error } = await supabase
+      .from('stations')
+      .update({
+        name: updates.name,
+        station_code: updates.stationCode,
+        location: updates.location,
+        fuel_types: updates.fuelTypes,
+        low_stock_threshold: updates.lowStockThreshold,
+        status: updates.status,
+        petrol_stock: updates.petrolStock,
+        diesel_stock: updates.dieselStock,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: updatedStation.id,
+      name: updatedStation.name,
+      stationCode: updatedStation.station_code,
+      location: updatedStation.location,
+      fuelTypes: updatedStation.fuel_types as FuelType[],
+      petrolStock: Number(updatedStation.petrol_stock),
+      dieselStock: Number(updatedStation.diesel_stock),
+      lowStockThreshold: Number(updatedStation.low_stock_threshold),
+      status: updatedStation.status,
+      createdAt: updatedStation.created_at,
+    };
   },
 };

@@ -28,41 +28,55 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }, [dispatch]);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading) {
       if (!isAuthenticated) {
         router.push('/login');
         return;
       }
 
-      // Redirect to role-specific dashboard if on generic dashboard
-      if (pathname === '/dashboard' && user.role) {
-        const roleDashboard = getDashboardPathForRole(user.role);
-        router.push(roleDashboard);
-        return;
-      }
+      if (user) {
+        // Enforce KYC Check for all non-super-admins
+        if (user.role !== AdminRole.SUPER_ADMIN) {
+          if (user.kycStatus === 'PENDING') {
+            router.push('/kyc-pending');
+            return;
+          }
+          if (user.kycStatus === 'REJECTED') {
+            router.push('/kyc-rejected');
+            return;
+          }
+        }
 
-      // Check route access
-      if (pathname && !canAccessRoute(user.role, pathname)) {
-        const roleDashboard = getDashboardPathForRole(user.role);
-        router.push(roleDashboard);
-        return;
-      }
-
-      // Check required role
-      if (requiredRole) {
-        const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-        if (!allowedRoles.includes(user.role)) {
+        // Redirect to role-specific dashboard if on generic dashboard
+        if (pathname === '/dashboard' && user.role) {
           const roleDashboard = getDashboardPathForRole(user.role);
           router.push(roleDashboard);
           return;
         }
-      }
 
-      // Check required permission
-      if (requiredPermission && user.permissions && !user.permissions.includes(requiredPermission)) {
-        const roleDashboard = getDashboardPathForRole(user.role);
-        router.push(roleDashboard);
-        return;
+        // Check route access
+        if (pathname && !canAccessRoute(user.role, pathname)) {
+          const roleDashboard = getDashboardPathForRole(user.role);
+          router.push(roleDashboard);
+          return;
+        }
+
+        // Check required role
+        if (requiredRole) {
+          const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+          if (!allowedRoles.includes(user.role)) {
+            const roleDashboard = getDashboardPathForRole(user.role);
+            router.push(roleDashboard);
+            return;
+          }
+        }
+
+        // Check required permission
+        if (requiredPermission && user.permissions && !user.permissions.includes(requiredPermission)) {
+          const roleDashboard = getDashboardPathForRole(user.role);
+          router.push(roleDashboard);
+          return;
+        }
       }
     }
   }, [isAuthenticated, loading, user, requiredRole, requiredPermission, router, pathname]);

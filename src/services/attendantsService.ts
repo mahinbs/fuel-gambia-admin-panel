@@ -1,28 +1,8 @@
+import { createClient } from '@/utils/supabase/client';
 import { Attendant, PaginatedResponse } from '@/types';
 import { PAGE_SIZE } from '@/utils/constants';
 
-// Mock attendants data
-const generateMockAttendants = (count: number): Attendant[] => {
-  const stations = ['Station A', 'Station B', 'Station C', 'Station D', 'Station E'];
-  const stationIds = ['station_1', 'station_2', 'station_3', 'station_4', 'station_5'];
-  
-  return Array.from({ length: count }, (_, i) => ({
-    id: `att_${i + 1}`,
-    phoneNumber: `+220${9000000 + i}`,
-    role: 'ATTENDANT' as any,
-    name: `Attendant ${i + 1}`,
-    email: `attendant${i + 1}@example.com`,
-    createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    stationId: stationIds[i % stationIds.length],
-    stationName: stations[i % stations.length],
-    deviceId: i % 3 === 0 ? `DEVICE_${i + 1}` : undefined,
-    lastLogin: i % 2 === 0 ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-    status: i % 10 === 0 ? 'SUSPENDED' : 'ACTIVE',
-  }));
-};
-
-const MOCK_ATTENDANTS = generateMockAttendants(80);
+const supabase = createClient();
 
 export const attendantsService = {
   async getAttendants(params: {
@@ -31,75 +11,88 @@ export const attendantsService = {
     stationId?: string;
     status?: string;
   }): Promise<PaginatedResponse<Attendant>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let filtered = [...MOCK_ATTENDANTS];
-        
-        if (params.search) {
-          const searchLower = params.search.toLowerCase();
-          filtered = filtered.filter(
-            (a) =>
-              a.name?.toLowerCase().includes(searchLower) ||
-              a.phoneNumber.includes(searchLower) ||
-              a.stationName.toLowerCase().includes(searchLower)
-          );
-        }
-        
-        if (params.stationId) {
-          filtered = filtered.filter((a) => a.stationId === params.stationId);
-        }
-        
-        if (params.status) {
-          filtered = filtered.filter((a) => a.status === params.status);
-        }
-        
-        const page = params.page || 1;
-        const start = (page - 1) * PAGE_SIZE;
-        const end = start + PAGE_SIZE;
-        
-        resolve({
-          data: filtered.slice(start, end),
-          total: filtered.length,
-          page,
-          limit: PAGE_SIZE,
-          totalPages: Math.ceil(filtered.length / PAGE_SIZE),
-        });
-      }, 500);
+    const page = params.page || 1;
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let query = supabase
+      .from('profiles')
+      .select(`
+        *,
+        attendant:attendants!attendants_id_fkey(*, station:stations(name))
+      `, { count: 'exact' })
+      .eq('role', 'ATTENDANT');
+
+    if (params.search) {
+      query = query.or(`name.ilike.%${params.search}%,phone_number.ilike.%${params.search}%`);
+    }
+
+    const { data, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const formattedData: Attendant[] = (data || []).map(item => {
+      const a = (item as any).attendant;
+      return {
+        id: item.id,
+        phoneNumber: item.phone_number,
+        role: item.role as any,
+        name: item.name,
+        email: item.email,
+        createdAt: item.created_at,
+        updatedAt: item.updated_at,
+        stationId: a?.station_id,
+        stationName: a?.station?.name || 'Unknown',
+        status: a?.status || 'ACTIVE',
+      };
     });
+
+    return {
+      data: formattedData,
+      total: count || 0,
+      page,
+      limit: PAGE_SIZE,
+      totalPages: Math.ceil((count || 0) / PAGE_SIZE),
+    };
   },
 
   async getAttendantById(id: string): Promise<Attendant> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const attendant = MOCK_ATTENDANTS.find((a) => a.id === id);
-        if (attendant) {
-          resolve(attendant);
-        } else {
-          reject(new Error('Attendant not found'));
-        }
-      }, 300);
-    });
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(`
+        *,
+        attendant:attendants!attendants_id_fkey(*, station:stations(name))
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    const a = (data as any).attendant;
+    return {
+      id: data.id,
+      phoneNumber: data.phone_number,
+      role: data.role as any,
+      name: data.name,
+      email: data.email,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      stationId: a?.station_id,
+      stationName: a?.station?.name || 'Unknown',
+      status: a?.status || 'ACTIVE',
+    };
   },
 
-
   async suspendAttendant(id: string): Promise<Attendant> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = MOCK_ATTENDANTS.findIndex((a) => a.id === id);
-        if (index !== -1) {
-          // Create a new object instead of mutating
-          const updatedAttendant: Attendant = {
-            ...MOCK_ATTENDANTS[index],
-            status: 'SUSPENDED',
-            updatedAt: new Date().toISOString(),
-          };
-          MOCK_ATTENDANTS[index] = updatedAttendant;
-          resolve(updatedAttendant);
-        } else {
-          reject(new Error('Attendant not found'));
-        }
-      }, 500);
-    });
+    const { error } = await supabase
+      .from('attendants')
+      .update({ status: 'SUSPENDED' })
+      .eq('id', id);
+
+    if (error) throw error;
+    return this.getAttendantById(id);
   },
 
   async createAttendant(data: {
@@ -107,59 +100,41 @@ export const attendantsService = {
     phoneNumber: string;
     email?: string;
     stationId: string;
-    stationName: string;
   }): Promise<Attendant> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newAttendant: Attendant = {
-          id: `att_${Date.now()}`,
-          phoneNumber: data.phoneNumber,
-          role: 'ATTENDANT' as any,
-          name: data.name,
-          email: data.email,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          stationId: data.stationId,
-          stationName: data.stationName,
-          status: 'ACTIVE',
-        };
-        MOCK_ATTENDANTS.push(newAttendant);
-        resolve(newAttendant);
-      }, 500);
-    });
+    // Note: Creating an attendant usually involves creating an auth user too.
+    // This part should ideally call a Supabase Edge Function or be handled by the UI signup flow.
+    // For now, we'll assume the profile already exists or is created elsewhere.
+    const { data: newAttendant, error } = await supabase
+      .from('attendants')
+      .insert({
+        id: (data as any).id, // Assuming ID is passed from a created auth user
+        station_id: data.stationId,
+        status: 'ACTIVE',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.getAttendantById(newAttendant.id);
   },
 
   async deleteAttendant(id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = MOCK_ATTENDANTS.findIndex((a) => a.id === id);
-        if (index !== -1) {
-          MOCK_ATTENDANTS.splice(index, 1);
-          resolve();
-        } else {
-          reject(new Error('Attendant not found'));
-        }
-      }, 500);
-    });
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   },
 
   async bindDevice(id: string, deviceId: string): Promise<Attendant> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const index = MOCK_ATTENDANTS.findIndex((a) => a.id === id);
-        if (index !== -1) {
-          // Create a new object instead of mutating
-          const updatedAttendant: Attendant = {
-            ...MOCK_ATTENDANTS[index],
-            deviceId,
-            updatedAt: new Date().toISOString(),
-          };
-          MOCK_ATTENDANTS[index] = updatedAttendant;
-          resolve(updatedAttendant);
-        } else {
-          reject(new Error('Attendant not found'));
-        }
-      }, 500);
-    });
+    // In a real app, you'd store this in the attendants table
+    const { error } = await supabase
+      .from('attendants')
+      .update({ device_id: deviceId }) // If column exists
+      .eq('id', id);
+
+    if (error) throw error;
+    return this.getAttendantById(id);
   },
 };

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { FileText, Download, TrendingUp, Calendar, Search, Filter, FileBarChart, CalendarRange } from 'lucide-react';
+import { FileText, Download, TrendingUp, Calendar, Search, Filter, FileBarChart, CalendarRange, Loader2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { transactionFunctions, beneficiaryFunctions, allocationFunctions } from '@/supabase';
+import { formatCurrency, formatLiters } from '@/utils/format';
 
 type IntervalType = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
 
@@ -13,11 +14,8 @@ export default function ReportsGovPage() {
   const [selectedInterval, setSelectedInterval] = useState<IntervalType>('month');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
-  const handleDownload = (title: string) => {
-    const period = selectedInterval === 'custom' ? `${startDate || 'N/A'} to ${endDate || 'N/A'}` : selectedInterval;
-    alert(`Downloading "${title}" for ${period} period...`);
-  };
+  const [stats, setStats] = useState({ totalAllocated: 0, activeBeneficiaries: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   const intervals: { label: string; key: IntervalType }[] = [
     { label: 'Today', key: 'day' },
@@ -29,10 +27,36 @@ export default function ReportsGovPage() {
   ];
 
   const reports = [
-    { id: '1', title: 'March 2026 Allocation Report', description: 'Monthly summary of all departmental fuel disbursements', date: 'Mar 16, 2026', size: '2.4 MB', type: 'PDF' },
-    { id: '2', title: 'Quarterly Consumption Audit', description: 'Detailed audit of fuel utilization across all government branches', date: 'Mar 12, 2026', size: '5.1 MB', type: 'XLSX' },
-    { id: '3', title: 'Beneficiary Verification Log', description: 'History of all new beneficiary approvals and document checks', date: 'Mar 08, 2026', size: '1.2 MB', type: 'PDF' },
+    { id: '1', title: 'Monthly Allocation Report', description: 'Monthly summary of all departmental fuel disbursements', type: 'PDF' },
+    { id: '2', title: 'Quarterly Consumption Audit', description: 'Detailed audit of fuel utilization across all government branches', type: 'XLSX' },
+    { id: '3', title: 'Beneficiary Verification Log', description: 'History of all new beneficiary approvals and document checks', type: 'PDF' },
   ];
+
+  const loadStats = useCallback(async () => {
+    try {
+      setLoadingStats(true);
+      const [allocResult, benefResult] = await Promise.all([
+        allocationFunctions.getAllocations({}),
+        beneficiaryFunctions.getBeneficiaries({}),
+      ]);
+      const totalAllocated = (allocResult.data || []).reduce((sum: number, a: any) => sum + Number(a.allocated_liters || 0), 0);
+      const activeBeneficiaries = (benefResult.data || []).filter((b: any) => b.beneficiary?.verification_status === 'APPROVED').length;
+      setStats({ totalAllocated, activeBeneficiaries });
+    } catch {
+      // silently ignore
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  const handleDownload = (title: string) => {
+    const period = selectedInterval === 'custom' ? `${startDate || 'N/A'} to ${endDate || 'N/A'}` : selectedInterval;
+    alert(`Generating "${title}" for ${period} period...`);
+  };
 
   return (
     <div className="space-y-10 pb-10">
@@ -54,31 +78,38 @@ export default function ReportsGovPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-1 space-y-6">
-           <Card className="p-6 border-none shadow-xl bg-blue-600 text-white overflow-hidden relative group">
-              <div className="relative z-10">
-                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Total Allocated</p>
-                 <h3 className="text-3xl font-black">2.4M L</h3>
-                 <p className="text-xs font-bold mt-4 flex items-center gap-1">
-                    <TrendingUp size={14} /> +12.5% from Feb
-                 </p>
-              </div>
-              <FileBarChart className="absolute -bottom-4 -right-4 w-24 h-24 text-white/10 -rotate-12 group-hover:scale-110 transition-transform" />
-           </Card>
-           
-           <Card className="p-6 border-none shadow-xl bg-slate-900 text-white overflow-hidden relative group">
-              <div className="relative z-10">
-                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Active Beneficiaries</p>
-                 <h3 className="text-3xl font-black">1,248</h3>
-                 <p className="text-xs font-bold mt-4 text-emerald-400 flex items-center gap-1">
-                    98.4% Verified
-                 </p>
-              </div>
-              <div className="absolute top-1/2 -right-4 w-20 h-20 bg-blue-500/20 rounded-full blur-2xl" />
-           </Card>
+          <Card className="p-6 border-none shadow-xl bg-blue-600 text-white overflow-hidden relative group">
+            <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Total Allocated</p>
+              {loadingStats ? (
+                <Loader2 className="animate-spin" size={24} />
+              ) : (
+                <h3 className="text-3xl font-black">{formatLiters(stats.totalAllocated)}</h3>
+              )}
+              <p className="text-xs font-bold mt-4 flex items-center gap-1">
+                <TrendingUp size={14} /> National quota
+              </p>
+            </div>
+            <FileBarChart className="absolute -bottom-4 -right-4 w-24 h-24 text-white/10 -rotate-12 group-hover:scale-110 transition-transform" />
+          </Card>
+
+          <Card className="p-6 border-none shadow-xl bg-slate-900 text-white overflow-hidden relative group">
+            <div className="relative z-10">
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Active Beneficiaries</p>
+              {loadingStats ? (
+                <Loader2 className="animate-spin" size={24} />
+              ) : (
+                <h3 className="text-3xl font-black">{stats.activeBeneficiaries.toLocaleString()}</h3>
+              )}
+              <p className="text-xs font-bold mt-4 text-emerald-400 flex items-center gap-1">
+                Verified Personnel
+              </p>
+            </div>
+            <div className="absolute top-1/2 -right-4 w-20 h-20 bg-blue-500/20 rounded-full blur-2xl" />
+          </Card>
         </div>
 
         <div className="lg:col-span-3 space-y-6">
-          {/* Date Interval Selector */}
           <Card className="p-6 border-none shadow-xl">
             <div className="flex items-center gap-2 mb-4">
               <CalendarRange className="text-blue-600" size={20} />
@@ -120,10 +151,11 @@ export default function ReportsGovPage() {
               ))}
             </div>
           </Card>
+
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
               <FileText className="text-blue-500" size={24} />
-              Recent System Reports
+              System Reports
             </h2>
             <div className="flex gap-2">
               <button className="p-2 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 transition-colors">
@@ -141,18 +173,13 @@ export default function ReportsGovPage() {
                 <div className="w-14 h-14 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
                   <FileText size={28} strokeWidth={2.5} />
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-1">
                     <h3 className="font-black text-slate-900 dark:text-white truncate group-hover:text-blue-500 transition-colors">{report.title}</h3>
-                    <Badge variant="info" size="sm" className="font-black">{report.type}</Badge>
+                    <span className="ml-2 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[9px] font-black rounded-lg uppercase tracking-widest shrink-0">{report.type}</span>
                   </div>
-                  <p className="text-sm text-slate-500 font-medium truncate mb-2">{report.description}</p>
-                  <div className="flex items-center gap-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <span className="flex items-center gap-1"><Calendar size={12} /> {report.date}</span>
-                    <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                    <span>{report.size}</span>
-                  </div>
+                  <p className="text-sm text-slate-500 font-medium truncate">{report.description}</p>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -163,7 +190,7 @@ export default function ReportsGovPage() {
               </Card>
             ))}
           </div>
-          
+
           <Button variant="ghost" className="w-full h-14 border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 font-black tracking-widest text-xs uppercase hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl">
             View Archive
           </Button>

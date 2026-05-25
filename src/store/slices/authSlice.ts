@@ -30,8 +30,26 @@ export const login = createAsyncThunk(
 
 export const signup = createAsyncThunk(
   'auth/signup',
-  async (data: { name: string; email: string; password: string; confirmPassword: string; role: any }) => {
+  async (data: { 
+    name: string; 
+    email: string; 
+    password: string; 
+    confirmPassword: string; 
+    role: any;
+    phoneNumber: string;
+    companyName?: string;
+    departmentName?: string;
+    stationName?: string;
+  }) => {
     const response = await authService.signup(data);
+    return response;
+  }
+);
+
+export const verifyOtp = createAsyncThunk(
+  'auth/verifyOtp',
+  async (data: { email: string; token: string }) => {
+    const response = await authService.verifyOtp(data.email, data.token);
     return response;
   }
 );
@@ -83,14 +101,31 @@ const authSlice = createSlice({
       .addCase(signup.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
-        state.token = action.payload.token;
-        state.refreshToken = action.payload.refreshToken;
-        state.isAuthenticated = true;
+        state.token = action.payload.token || null;
+        state.refreshToken = action.payload.refreshToken || null;
+        state.isAuthenticated = !!action.payload.token;
         state.error = null;
       })
       .addCase(signup.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Signup failed';
+        state.isAuthenticated = false;
+      })
+      .addCase(verifyOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.refreshToken = action.payload.refreshToken;
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'OTP verification failed';
         state.isAuthenticated = false;
       })
       .addCase(logout.fulfilled, (state) => {

@@ -47,6 +47,15 @@ export interface AdminUser {
   createdAt: string;
   lastLogin?: string;
   active: boolean;
+  kycStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  companyName?: string;
+  departmentName?: string;
+  stationName?: string;
+  phoneNumber?: string;
+  kycDocument1Url?: string;
+  kycDocument2Url?: string;
+  kycDocument3Url?: string;
+  stationId?: string;
 }
 
 // User Interfaces
@@ -216,7 +225,8 @@ export interface DashboardStats {
 
 // Chart Data
 export interface ChartData {
-  name: string;
+  name?: string;
+  label?: string;
   value?: number;
   [key: string]: any;
 }
@@ -291,16 +301,16 @@ export interface AllocationRuleForm {
 // Policy Management Types
 export interface FuelPolicy {
   id: string;
-  name: string;
-  description: string;
-  fuelType: FuelType;
-  monthlyLimit: number; // liters
-  amountEquivalent: number; // GMD
-  validityStart: string;
-  validityEnd: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+  title: string;
+  description?: string;
+  policyType: string;
+  value?: number;
+  fuelType?: FuelType | 'ALL' | string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  isActive: boolean;
   version: number;
-  createdBy: string;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
   history?: PolicyVersion[];
@@ -319,16 +329,20 @@ export interface PolicyVersion {
 export interface Coupon {
   id: string;
   beneficiaryId: string;
-  beneficiaryName: string;
+  beneficiaryName?: string;
   fuelType: FuelType;
   amount: number; // GMD
   liters: number;
-  remainingBalance: number;
+  remainingBalance?: number;
   status: 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
-  issuedAt: string;
+  issuedAt?: string;
   expiresAt: string;
   usedAt?: string;
   transactions?: Transaction[];
+  allocationId?: string;
+  qrPayload?: string;
+  usedAtStation?: string;
+  createdAt: string;
 }
 
 // Audit & Fraud Detection Types
@@ -358,7 +372,8 @@ export interface AuditLog {
   changes?: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
-  timestamp: string;
+  timestamp?: string;
+  createdAt: string;
 }
 
 // Station Approval Types
@@ -380,24 +395,7 @@ export interface StationRequest {
   stationId?: string; // Assigned after approval
 }
 
-// Monthly Settlement Types
-export interface MonthlySettlement {
-  id: string;
-  stationId: string;
-  stationName: string;
-  month: string; // YYYY-MM
-  totalLiters: number;
-  totalAmount: number; // GMD
-  subsidyLiters: number;
-  commercialLiters: number;
-  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'PAID';
-  submittedAt?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  paidAt?: string;
-  paymentReference?: string;
-  transactions: Transaction[];
-}
+// Monthly Settlement Types is now defined below as an extension of Reconciliation
 
 // Department Types
 export interface Department {
@@ -473,3 +471,145 @@ export interface StationAdminDashboardStats {
   todayTransactions: number;
   activeAttendants: number;
 }
+
+export interface Company {
+  id: string;
+  name: string;
+  registrationNumber?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  onboardedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StationOrder {
+  id: string;
+  stationId: string;
+  orderedBy: string;
+  fuelType: FuelType;
+  orderedLiters: number;
+  unitPrice?: number;
+  totalCost?: number;
+  supplierName?: string;
+  expectedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  status: 'PENDING' | 'APPROVED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+  deliveryId?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FuelDelivery {
+  id: string;
+  stationId: string;
+  receivedBy: string;
+  deliveryDate: string;
+  fuelType: FuelType;
+  orderedLiters: number;
+  deliveredLiters: number;
+  varianceLiters?: number;
+  deliveryNoteNumber?: string;
+  supplierName?: string;
+  preDeliveryStock?: number;
+  postDeliveryStock?: number;
+  notes?: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DISPUTED';
+  createdAt: string;
+}
+
+export interface Reconciliation {
+  id: string;
+  stationId: string;
+  reconciledBy: string;
+  periodMonth: number;
+  periodYear: number;
+  fuelType: FuelType;
+  openingStock: number;
+  totalOrdered: number;
+  totalSold: number;
+  theoreticalClosing: number;
+  physicalClosing?: number;
+  shortageLiters: number;
+  shortageThreshold?: number;
+  shortagePayable?: boolean;
+  cashSales: number;
+  couponSales: number;
+  mobileMoneySales: number;
+  totalCashCollected: number;
+  bankDepositAmount: number;
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'PAID';
+  approvedBy?: string;
+  approvedAt?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MonthlySettlement extends Reconciliation {}
+
+export interface BillingRecord {
+  id: string;
+  stationId?: string;
+  departmentId?: string;
+  billingPeriodStart: string;
+  billingPeriodEnd: string;
+  totalLitersBilled: number;
+  totalAmount: number;
+  paymentStatus: 'PENDING' | 'INVOICED' | 'PAID' | 'OVERDUE' | 'DISPUTED';
+  invoiceNumber?: string;
+  generatedBy?: string;
+  paidAt?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CouponAllocation {
+  id: string;
+  beneficiaryId: string;
+  allocatedBy?: string;
+  fuelType: FuelType;
+  allocatedLiters: number;
+  usedLiters: number;
+  remainingLiters: number;
+  pricePerLiter: number;
+  totalValue: number;
+  validFrom: string;
+  validUntil: string;
+  status: 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Shift {
+  id: string;
+  stationId: string;
+  shiftDate: string;
+  shiftType: 'MORNING' | 'AFTERNOON' | 'NIGHT';
+  startTime?: string;
+  endTime?: string;
+  createdBy?: string;
+  notes?: string;
+  status: 'OPEN' | 'CLOSED';
+  createdAt: string;
+  updatedAt: string;
+  pump_assignments?: any[];
+}
+
+export interface MeterReading {
+  id: string;
+  shiftId: string;
+  pumpId: string;
+  attendantId: string;
+  readingType: 'OPENING' | 'CLOSING';
+  petrolReading: number;
+  dieselReading: number;
+  recordedAt: string;
+  notes?: string;
+}
+

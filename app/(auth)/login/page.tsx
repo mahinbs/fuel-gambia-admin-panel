@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Fuel } from 'lucide-react';
 import { authService } from '@/services/authService';
+import { AdminRole } from '@/types';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -40,6 +41,19 @@ export default function LoginPage() {
     try {
       const result = await dispatch(login(data)).unwrap();
       showToast('Welcome back!', 'success');
+      
+      // KYC Check gate
+      if (result.user.role !== AdminRole.SUPER_ADMIN) {
+        if (result.user.kycStatus === 'PENDING') {
+          router.push('/kyc-pending');
+          return;
+        }
+        if (result.user.kycStatus === 'REJECTED') {
+          router.push('/kyc-rejected');
+          return;
+        }
+      }
+
       const dashboardPath = authService.getDashboardPath(result.user.role);
       router.push(dashboardPath);
     } catch (error: any) {
@@ -115,32 +129,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Training Mode / Demo Credentials */}
-          <div className="mt-10 p-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-3xl border border-slate-100 dark:border-slate-700/50 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                System Credentials
-              </p>
-            </div>
-            <div className="space-y-3">
-              {[
-                { label: 'Super Admin', email: 'superadmin@fuelgambia.com' },
-                { label: 'Dept. Officer', email: 'deptofficer@fuelgambia.com' },
-                { label: 'Station HQ', email: 'stationhq@fuelgambia.com' },
-                { label: 'Station Manager', email: 'stationmanager@fuelgambia.com' }
-              ].map((cred) => (
-                <div key={cred.email} className="flex justify-between items-center group">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{cred.label}</span>
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors group-hover:text-blue-500">{cred.email}</span>
-                </div>
-              ))}
-              <div className="pt-2 border-t border-slate-200 dark:border-slate-700 mt-2 flex justify-between">
-                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Universal Pass</span>
-                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">password123</span>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>

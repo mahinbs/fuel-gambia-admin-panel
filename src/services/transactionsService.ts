@@ -1,32 +1,8 @@
-import { Transaction, PaginatedResponse, TransactionMode, PaymentStatus, FuelType } from '@/types';
+import { createClient } from '@/utils/supabase/client';
+import { Transaction, PaginatedResponse, FuelType, TransactionMode, PaymentStatus } from '@/types';
 import { PAGE_SIZE } from '@/utils/constants';
 
-// Mock transactions data
-const generateMockTransactions = (count: number): Transaction[] => {
-  const modes: TransactionMode[] = [TransactionMode.SUBSIDY, TransactionMode.PAID];
-  const statuses: PaymentStatus[] = [PaymentStatus.SUCCESS, PaymentStatus.SUCCESS, PaymentStatus.SUCCESS, PaymentStatus.FAILED];
-  const stations = ['Station A', 'Station B', 'Station C', 'Station D'];
-  
-  return Array.from({ length: count }, (_, i) => ({
-    id: `txn_${i + 1}`,
-    userId: `user_${i + 1}`,
-    userName: `User ${i + 1}`,
-    userRole: i % 3 === 0 ? 'BENEFICIARY' as any : 'CUSTOMER' as any,
-    stationId: `station_${(i % 4) + 1}`,
-    stationName: stations[i % stations.length],
-    fuelType: i % 2 === 0 ? FuelType.PETROL : FuelType.DIESEL,
-    amount: Math.floor(Math.random() * 5000) + 500,
-    liters: Math.floor(Math.random() * 50) + 5,
-    mode: modes[i % modes.length],
-    status: statuses[i % statuses.length],
-    attendantId: `att_${i + 1}`,
-    attendantName: `Attendant ${i + 1}`,
-    createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-  }));
-};
-
-const MOCK_TRANSACTIONS = generateMockTransactions(500);
+const supabase = createClient();
 
 export const transactionsService = {
   async getTransactions(params: {
@@ -38,62 +14,101 @@ export const transactionsService = {
     stationId?: string;
     userId?: string;
   }): Promise<PaginatedResponse<Transaction>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let filtered = [...MOCK_TRANSACTIONS];
-        
-        if (params.startDate) {
-          filtered = filtered.filter((t) => new Date(t.createdAt) >= new Date(params.startDate!));
-        }
-        
-        if (params.endDate) {
-          filtered = filtered.filter((t) => new Date(t.createdAt) <= new Date(params.endDate!));
-        }
-        
-        if (params.fuelType) {
-          filtered = filtered.filter((t) => t.fuelType === params.fuelType);
-        }
-        
-        if (params.mode) {
-          filtered = filtered.filter((t) => t.mode === params.mode);
-        }
-        
-        if (params.stationId) {
-          filtered = filtered.filter((t) => t.stationId === params.stationId);
-        }
-        
-        if (params.userId) {
-          filtered = filtered.filter((t) => t.userId === params.userId);
-        }
-        
-        // Sort by date descending
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        
-        const page = params.page || 1;
-        const start = (page - 1) * PAGE_SIZE;
-        const end = start + PAGE_SIZE;
-        
-        resolve({
-          data: filtered.slice(start, end),
-          total: filtered.length,
-          page,
-          limit: PAGE_SIZE,
-          totalPages: Math.ceil(filtered.length / PAGE_SIZE),
-        });
-      }, 500);
-    });
+    const page = params.page || 1;
+    const from = (page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let query = supabase
+      .from('transactions')
+      .select(`
+        *,
+        user:profiles!transactions_user_id_fkey(name, role),
+        station:stations(name),
+        attendant:profiles!transactions_attendant_id_fkey(name)
+      `, { count: 'exact' });
+
+    if (params.startDate) {
+      query = query.gte('created_at', params.startDate);
+    }
+    if (params.endDate) {
+      query = query.lte('created_at', params.endDate);
+    }
+    if (params.fuelType) {
+      query = query.eq('fuel_type', params.fuelType);
+    }
+    if (params.mode) {
+      query = query.eq('mode', params.mode);
+    }
+    if (params.stationId) {
+      query = query.eq('station_id', params.stationId);
+    }
+    if (params.userId) {
+      query = query.eq('user_id', params.userId);
+    }
+
+    const { data, count, error } = await query
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const formattedData: Transaction[] = (data || []).map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      userName: (item as any).user?.name || 'Unknown',
+      userRole: (item as any).user?.role || 'CUSTOMER',
+      stationId: item.station_id,
+      stationName: (item as any).station?.name || 'Unknown',
+      fuelType: item.fuel_type as FuelType,
+      amount: Number(item.amount),
+      liters: Number(item.liters),
+      mode: item.mode as TransactionMode,
+      status: item.status as PaymentStatus,
+      attendantId: item.attendant_id,
+      attendantName: (item as any).attendant?.name || 'Unknown',
+      createdAt: item.created_at,
+      updatedAt: item.created_at,
+    }));
+
+    return {
+      data: formattedData,
+      total: count || 0,
+      page,
+      limit: PAGE_SIZE,
+      totalPages: Math.ceil((count || 0) / PAGE_SIZE),
+    };
   },
 
   async getTransactionById(id: string): Promise<Transaction> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const transaction = MOCK_TRANSACTIONS.find((t) => t.id === id);
-        if (transaction) {
-          resolve(transaction);
-        } else {
-          reject(new Error('Transaction not found'));
-        }
-      }, 300);
-    });
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(`
+        *,
+        user:profiles!transactions_user_id_fkey(name, role),
+        station:stations(name),
+        attendant:profiles!transactions_attendant_id_fkey(name)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      userName: (data as any).user?.name || 'Unknown',
+      userRole: (data as any).user?.role || 'CUSTOMER',
+      stationId: data.station_id,
+      stationName: (data as any).station?.name || 'Unknown',
+      fuelType: data.fuel_type as FuelType,
+      amount: Number(data.amount),
+      liters: Number(data.liters),
+      mode: data.mode as TransactionMode,
+      status: data.status as PaymentStatus,
+      attendantId: data.attendant_id,
+      attendantName: (data as any).attendant?.name || 'Unknown',
+      createdAt: data.created_at,
+      updatedAt: data.created_at,
+    };
   },
 };

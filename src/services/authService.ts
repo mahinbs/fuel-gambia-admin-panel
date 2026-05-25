@@ -1,7 +1,21 @@
-import api from './api';
-import { AdminUser, AdminRole, ApiResponse } from '@/types';
+import { createClient } from '@/utils/supabase/client';
+import { AdminUser, AdminRole } from '@/types';
 import { STORAGE_KEYS } from '@/utils/constants';
 import { getDashboardPathForRole } from '@/utils/routing';
+
+const supabase = createClient();
+
+async function fetchStationIdForUser(userId: string, role: string): Promise<string | undefined> {
+  if (role === 'STATION_BRANCH') {
+    const { data: station } = await supabase
+      .from('stations')
+      .select('id')
+      .eq('branch_manager_id', userId)
+      .maybeSingle();
+    return station?.id;
+  }
+  return undefined;
+}
 
 interface LoginResponse {
   user: AdminUser;
@@ -15,79 +29,65 @@ interface SignupData {
   password: string;
   role: AdminRole;
   confirmPassword: string;
+  phoneNumber?: string;
+  companyName?: string;
+  departmentName?: string;
+  stationName?: string;
+  kycDocument1Url?: string;
+  kycDocument2Url?: string;
+  kycDocument3Url?: string;
 }
-
-// Mock admin users for development
-const MOCK_ADMINS: AdminUser[] = [
-  {
-    id: '1',
-    email: 'superadmin@fuelgambia.com',
-    name: 'Super Admin',
-    role: AdminRole.SUPER_ADMIN,
-    permissions: ['ALL'],
-    createdAt: new Date().toISOString(),
-    active: true,
-  },
-  {
-    id: '2',
-    email: 'deptofficer@fuelgambia.com',
-    name: 'Dept. Officer',
-    role: AdminRole.GOVERNMENT_ADMIN,
-    permissions: ['GOV_READ', 'GOV_WRITE'],
-    createdAt: new Date().toISOString(),
-    active: true,
-  },
-  {
-    id: '3',
-    email: 'stationhq@fuelgambia.com',
-    name: 'Station HQ Admin',
-    role: AdminRole.STATION_HQ,
-    permissions: ['HQ_READ', 'HQ_WRITE'],
-    createdAt: new Date().toISOString(),
-    active: true,
-  },
-  {
-    id: '4',
-    email: 'stationbranch@fuelgambia.com',
-    name: 'Station Manager',
-    role: AdminRole.STATION_BRANCH,
-    permissions: ['BRANCH_READ', 'BRANCH_WRITE'],
-    createdAt: new Date().toISOString(),
-    active: true,
-  },
-];
 
 export const authService = {
   async login(email: string, password: string): Promise<LoginResponse> {
-    // Mock login - in production, this would call the actual API
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const normalizedEmail = email.toLowerCase().trim().replace('dept.', 'dept').replace('official', 'officer');
-        const admin = MOCK_ADMINS.find((a) => {
-          const mockEmail = a.email.toLowerCase().trim();
-          return mockEmail === normalizedEmail || (normalizedEmail.includes('dept') && mockEmail.includes('dept'));
-        });
-
-        if (admin && (password === 'password123' || password === 'admin123')) {
-          const token = `mock_token_${admin.id}_${Date.now()}`;
-          const refreshToken = `mock_refresh_${admin.id}_${Date.now()}`;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-            localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(admin));
-          }
-          
-          resolve({
-            user: admin,
-            token,
-            refreshToken,
-          });
-        } else {
-          reject(new Error('Invalid email or password'));
-        }
-      }, 500);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
+
+    if (error) throw error;
+
+    if (data.user && data.session) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      const stationId = await fetchStationIdForUser(data.user.id, profile.role);
+
+      const adminUser: AdminUser = {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        role: profile.role as AdminRole,
+        permissions: [],
+        createdAt: profile.created_at,
+        active: profile.is_active ?? true,
+        kycStatus: (profile.kyc_status || 'PENDING') as 'PENDING' | 'APPROVED' | 'REJECTED',
+        companyName: profile.company_name || undefined,
+        departmentName: profile.department_name || undefined,
+        stationName: profile.station_name || undefined,
+        phoneNumber: profile.phone_number || undefined,
+        kycDocument1Url: profile.kyc_document_1_url || undefined,
+        kycDocument2Url: profile.kyc_document_2_url || undefined,
+        kycDocument3Url: profile.kyc_document_3_url || undefined,
+        stationId: stationId,
+      };
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(adminUser));
+      }
+
+      return {
+        user: adminUser,
+        token: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
+    }
+    throw new Error('Login failed');
   },
 
   getDashboardPath(role: AdminRole): string {
@@ -95,96 +95,170 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
+    await supabase.auth.signOut();
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
       window.location.href = '/login';
     }
-    return Promise.resolve();
   },
 
   async checkAuth(): Promise<LoginResponse | null> {
-    if (typeof window === 'undefined') return null;
+    const { data: { session } } = await supabase.auth.getSession();
     
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-    
-    if (token && userData) {
-      try {
-        const user = JSON.parse(userData) as AdminUser;
-        return {
-          user,
-          token,
-          refreshToken: localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) || '',
-        };
-      } catch {
-        return null;
-      }
+    if (session && session.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile) return null;
+
+      const stationId = await fetchStationIdForUser(session.user.id, profile.role);
+
+      const adminUser: AdminUser = {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        role: profile.role as AdminRole,
+        permissions: [],
+        createdAt: profile.created_at,
+        active: profile.is_active ?? true,
+        kycStatus: (profile.kyc_status || 'PENDING') as 'PENDING' | 'APPROVED' | 'REJECTED',
+        companyName: profile.company_name || undefined,
+        departmentName: profile.department_name || undefined,
+        stationName: profile.station_name || undefined,
+        phoneNumber: profile.phone_number || undefined,
+        kycDocument1Url: profile.kyc_document_1_url || undefined,
+        kycDocument2Url: profile.kyc_document_2_url || undefined,
+        kycDocument3Url: profile.kyc_document_3_url || undefined,
+        stationId: stationId,
+      };
+
+      return {
+        user: adminUser,
+        token: session.access_token,
+        refreshToken: session.refresh_token,
+      };
     }
     
     return null;
   },
 
   async refreshToken(): Promise<string> {
-    // Mock token refresh
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newToken = `mock_token_refreshed_${Date.now()}`;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newToken);
-        }
-        resolve(newToken);
-      }, 300);
-    });
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    return data.session?.access_token || '';
   },
 
   async signup(data: SignupData): Promise<LoginResponse> {
-    // Mock signup - in production, this would call the actual API
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Check if email already exists
-        const existingAdmin = MOCK_ADMINS.find((a) => a.email.toLowerCase() === data.email.toLowerCase());
-        if (existingAdmin) {
-          reject(new Error('Email already registered'));
-          return;
-        }
-
-        // Validate password match
-        if (data.password !== data.confirmPassword) {
-          reject(new Error('Passwords do not match'));
-          return;
-        }
-
-        // Create new admin user
-        const newAdmin: AdminUser = {
-          id: Date.now().toString(),
-          email: data.email,
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
           name: data.name,
           role: data.role,
-          permissions: [],
-          createdAt: new Date().toISOString(),
-          active: true,
-        };
-
-        // Add to mock admins (in production, this would be handled by backend)
-        MOCK_ADMINS.push(newAdmin);
-
-        const token = `mock_token_${newAdmin.id}_${Date.now()}`;
-        const refreshToken = `mock_refresh_${newAdmin.id}_${Date.now()}`;
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
-          localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(newAdmin));
-        }
-
-        resolve({
-          user: newAdmin,
-          token,
-          refreshToken,
-        });
-      }, 500);
+          phone_number: data.phoneNumber,
+          company_name: data.companyName,
+          department_name: data.departmentName,
+          station_name: data.stationName,
+          kyc_document_1_url: data.kycDocument1Url,
+          kyc_document_2_url: data.kycDocument2Url,
+          kyc_document_3_url: data.kycDocument3Url,
+        },
+      },
     });
+
+    if (error) throw error;
+
+    if (authData.user) {
+      const adminUser: AdminUser = {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        name: data.name,
+        role: data.role,
+        permissions: [],
+        createdAt: authData.user.created_at,
+        active: true,
+        kycStatus: 'PENDING',
+        companyName: data.companyName,
+        departmentName: data.departmentName,
+        stationName: data.stationName,
+        phoneNumber: data.phoneNumber,
+        kycDocument1Url: data.kycDocument1Url,
+        kycDocument2Url: data.kycDocument2Url,
+        kycDocument3Url: data.kycDocument3Url,
+      };
+
+      return {
+        user: adminUser,
+        token: authData.session?.access_token || '',
+        refreshToken: authData.session?.refresh_token || '',
+      };
+    }
+    throw new Error('Signup failed');
+  },
+
+  async verifyOtp(email: string, token: string): Promise<LoginResponse> {
+    const cleanEmail = email.trim().toLowerCase();
+    let { data, error } = await supabase.auth.verifyOtp({
+      email: cleanEmail,
+      token,
+      type: 'signup',
+    });
+
+    if (error) {
+      // Fallback verification type
+      const { data: emailData, error: emailError } = await supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token,
+        type: 'email',
+      });
+      if (emailError) throw emailError;
+      data = emailData;
+    }
+
+    if (data.user && data.session) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      const stationId = await fetchStationIdForUser(data.user.id, profile.role);
+
+      const adminUser: AdminUser = {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        role: profile.role as AdminRole,
+        permissions: [],
+        createdAt: profile.created_at,
+        active: profile.is_active ?? true,
+        kycStatus: (profile.kyc_status || 'PENDING') as 'PENDING' | 'APPROVED' | 'REJECTED',
+        companyName: profile.company_name || undefined,
+        departmentName: profile.department_name || undefined,
+        stationName: profile.station_name || undefined,
+        phoneNumber: profile.phone_number || undefined,
+        kycDocument1Url: profile.kyc_document_1_url || undefined,
+        kycDocument2Url: profile.kyc_document_2_url || undefined,
+        kycDocument3Url: profile.kyc_document_3_url || undefined,
+        stationId: stationId,
+      };
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(adminUser));
+      }
+
+      return {
+        user: adminUser,
+        token: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+      };
+    }
+    throw new Error('Verification failed');
   },
 };
