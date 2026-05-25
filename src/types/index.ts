@@ -114,6 +114,8 @@ export interface Station {
   status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
   createdAt: string;
   lastSync?: string;
+  totalCapacity?: number;
+  branchManagerId?: string;
 }
 
 // Transaction Interface
@@ -270,6 +272,8 @@ export interface StationForm {
   managerId?: string;
   fuelTypes: FuelType[];
   lowStockThreshold: number;
+  totalCapacity?: number;
+  branchManagerId?: string;
 }
 
 export interface InventoryForm {

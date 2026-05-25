@@ -11,11 +11,14 @@ import { cn } from '@/utils/cn';
 
 import { ProtectedRoute } from '@/navigation/ProtectedRoute';
 import { AdminRole } from '@/types';
-import { stationFunctions } from '@/supabase';
+import { stationFunctions, supabase } from '@/supabase';
 
 export default function StationsHQPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingStation, setEditingStation] = useState<any>(null);
   const [stations, setStations] = useState<any[]>([]);
+  const [managers, setManagers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +36,18 @@ export default function StationsHQPage() {
     fuelTypes: ['PETROL', 'DIESEL'],
   });
 
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    stationCode: '',
+    location: '',
+    address: '',
+    status: 'ACTIVE',
+    branchManagerId: '',
+    capacity: '',
+    petrolStock: '',
+    dieselStock: '',
+  });
+
   const loadStations = useCallback(async () => {
     try {
       setLoading(true);
@@ -46,9 +61,40 @@ export default function StationsHQPage() {
     }
   }, [search]);
 
+  const loadManagers = useCallback(async () => {
+    try {
+      const { data, error: err } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('role', 'STATION_BRANCH')
+        .eq('is_active', true);
+      if (err) throw err;
+      setManagers(data || []);
+    } catch (err) {
+      console.error('Failed to load station managers:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadStations();
-  }, [loadStations]);
+    loadManagers();
+  }, [loadStations, loadManagers]);
+
+  const handleOpenEditModal = (station: any) => {
+    setEditingStation(station);
+    setEditFormData({
+      name: station.name || '',
+      stationCode: station.station_code || station.code || '',
+      location: station.location || '',
+      address: station.address || '',
+      status: station.status || 'ACTIVE',
+      branchManagerId: station.branch_manager_id || '',
+      capacity: station.total_capacity ? String(station.total_capacity) : '',
+      petrolStock: station.petrol_stock ? String(station.petrol_stock) : '0',
+      dieselStock: station.diesel_stock ? String(station.diesel_stock) : '0',
+    });
+    setIsEditModalOpen(true);
+  };
 
   const handleProvision = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,12 +107,49 @@ export default function StationsHQPage() {
         fuelTypes: formData.fuelTypes as any,
         status: formData.status === 'OPERATIONAL' ? 'ACTIVE' : formData.status as any,
         lowStockThreshold: 5000,
+        totalCapacity: formData.capacity ? Number(formData.capacity) : 0,
       });
       await loadStations();
       setIsModalOpen(false);
       setFormData({ name: '', stationCode: '', managerName: '', phone: '', capacity: '', location: '', address: '', status: 'OPERATIONAL', fuelTypes: ['PETROL', 'DIESEL'] });
     } catch (err: any) {
       setError(err.message || 'Provisioning failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStation) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const updates = {
+        name: editFormData.name,
+        stationCode: editFormData.stationCode,
+        location: editFormData.location,
+        status: editFormData.status,
+        branchManagerId: editFormData.branchManagerId || null,
+        totalCapacity: editFormData.capacity ? Number(editFormData.capacity) : 0,
+        petrolStock: editFormData.petrolStock ? Number(editFormData.petrolStock) : 0,
+        dieselStock: editFormData.dieselStock ? Number(editFormData.dieselStock) : 0,
+      };
+
+      await stationFunctions.updateStation(editingStation.id, updates);
+
+      if (editFormData.branchManagerId) {
+        await supabase
+          .from('staff')
+          .update({ station_id: editingStation.id })
+          .eq('id', editFormData.branchManagerId);
+      }
+
+      await loadStations();
+      setIsEditModalOpen(false);
+      setEditingStation(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update station details');
     } finally {
       setSubmitting(false);
     }
@@ -209,7 +292,7 @@ export default function StationsHQPage() {
                     <Button
                       variant="ghost"
                       className="flex-1 text-[10px] font-black h-11 text-blue-600 gap-2 uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl"
-                      onClick={() => alert(`Editing ${s.name} details...`)}
+                      onClick={() => handleOpenEditModal(s)}
                     >
                       <Pencil size={16} strokeWidth={2.5} />
                       Edit
@@ -308,6 +391,97 @@ export default function StationsHQPage() {
               <Button variant="primary" type="submit" disabled={submitting} className="flex-1 h-16 rounded-2xl shadow-xl shadow-blue-500/20 font-black uppercase tracking-widest text-[10px]">
                 {submitting ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
                 {submitting ? 'Registering...' : 'Confirm Registration'}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        <Modal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          title="Edit Station Details"
+          size="lg"
+        >
+          <form className="space-y-8" onSubmit={handleUpdateStation}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Input
+                label="Station Identity"
+                placeholder="e.g. Brikama South"
+                className="h-14 rounded-2xl font-bold"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                required
+              />
+              <Input
+                label="Terminal Identifier"
+                placeholder="e.g. GFS-005"
+                className="h-14 rounded-2xl font-bold"
+                value={editFormData.stationCode}
+                onChange={(e) => setEditFormData({ ...editFormData, stationCode: e.target.value })}
+                required
+              />
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Station Manager</label>
+                <select
+                  className="w-full h-14 px-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-black focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+                  value={editFormData.branchManagerId}
+                  onChange={(e) => setEditFormData({ ...editFormData, branchManagerId: e.target.value })}
+                >
+                  <option value="">Unassigned</option>
+                  {managers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+              <Input
+                label="Storage Capacity (L)"
+                type="number"
+                placeholder="50000"
+                className="h-14 rounded-2xl font-bold"
+                value={editFormData.capacity}
+                onChange={(e) => setEditFormData({ ...editFormData, capacity: e.target.value })}
+              />
+              <Input
+                label="Petrol Stock (L)"
+                type="number"
+                placeholder="20000"
+                className="h-14 rounded-2xl font-bold"
+                value={editFormData.petrolStock}
+                onChange={(e) => setEditFormData({ ...editFormData, petrolStock: e.target.value })}
+              />
+              <Input
+                label="Diesel Stock (L)"
+                type="number"
+                placeholder="20000"
+                className="h-14 rounded-2xl font-bold"
+                value={editFormData.dieselStock}
+                onChange={(e) => setEditFormData({ ...editFormData, dieselStock: e.target.value })}
+              />
+              <Input
+                label="Geolocation"
+                placeholder="13.4549° N, 16.5790° W"
+                className="h-14 rounded-2xl font-bold"
+                value={editFormData.location}
+                onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+              />
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Deployment Status</label>
+                <select
+                  className="w-full h-14 px-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-black focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none"
+                  value={editFormData.status}
+                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                >
+                  <option value="ACTIVE">Active (Operational)</option>
+                  <option value="MAINTENANCE">Under Maintenance</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Button variant="outline" type="button" className="flex-1 h-16 rounded-2xl font-black uppercase tracking-widest text-[10px]" onClick={() => setIsEditModalOpen(false)}>Discard</Button>
+              <Button variant="primary" type="submit" disabled={submitting} className="flex-1 h-16 rounded-2xl shadow-xl shadow-blue-500/20 font-black uppercase tracking-widest text-[10px]">
+                {submitting ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
+                {submitting ? 'Updating...' : 'Save Changes'}
               </Button>
             </div>
           </form>

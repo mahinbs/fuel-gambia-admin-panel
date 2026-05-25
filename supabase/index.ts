@@ -187,25 +187,32 @@ export const stationFunctions = {
     const page = params.page || 1;
     const pageSize = 20;
     const from = (page - 1) * pageSize;
-    let query = supabase.from('stations').select('*, company:companies(name)', { count: 'exact' });
+    let query = supabase.from('stations').select('*, company:companies(name), branch_manager:profiles!branch_manager_id(name)', { count: 'exact' });
     if (params.search) query = query.or(`name.ilike.%${params.search}%,location.ilike.%${params.search}%`);
     if (params.status) query = query.eq('status', params.status);
     const { data, count, error } = await query.order('name').range(from, from + pageSize - 1);
     if (error) throw error;
-    return { data: data || [], total: count || 0, page, totalPages: Math.ceil((count || 0) / pageSize) };
+    const formattedData = (data || []).map((s: any) => ({
+      ...s,
+      manager_name: s.branch_manager?.name || null
+    }));
+    return { data: formattedData, total: count || 0, page, totalPages: Math.ceil((count || 0) / pageSize) };
   },
 
   async getStationById(id: string) {
     const { data, error } = await supabase
       .from('stations')
-      .select('*, company:companies(name), pumps(*)')
+      .select('*, company:companies(name), branch_manager:profiles!branch_manager_id(name), pumps(*)')
       .eq('id', id)
       .single();
     if (error) throw error;
+    if (data) {
+      data.manager_name = data.branch_manager?.name || null;
+    }
     return data;
   },
 
-  async createStation(payload: Partial<Station>) {
+  async createStation(payload: any) {
     const { data, error } = await supabase.from('stations').insert({
       name: payload.name,
       station_code: payload.stationCode,
@@ -213,12 +220,14 @@ export const stationFunctions = {
       fuel_types: payload.fuelTypes,
       low_stock_threshold: payload.lowStockThreshold,
       status: payload.status || 'ACTIVE',
+      total_capacity: payload.totalCapacity || 0,
+      branch_manager_id: payload.branchManagerId || null,
     }).select().single();
     if (error) throw error;
     return data;
   },
 
-  async updateStation(id: string, updates: Partial<Station>) {
+  async updateStation(id: string, updates: any) {
     const { data, error } = await supabase.from('stations').update({
       name: updates.name,
       station_code: updates.stationCode,
@@ -228,6 +237,8 @@ export const stationFunctions = {
       status: updates.status,
       petrol_stock: updates.petrolStock,
       diesel_stock: updates.dieselStock,
+      total_capacity: updates.totalCapacity,
+      branch_manager_id: updates.branchManagerId,
     }).eq('id', id).select().single();
     if (error) throw error;
     return data;
@@ -1237,20 +1248,42 @@ export const attendantFunctions = {
   async getAttendants(params: { page?: number; search?: string; stationId?: string; status?: string } = {}) {
     const page = params.page || 1;
     const from = (page - 1) * 20;
+    
+    let selectStr = `
+      *,
+      attendant:attendants!attendants_id_fkey(*, station:stations(name))
+    `;
+    if (params.stationId) {
+      selectStr = `
+        *,
+        attendant:attendants!attendants_id_fkey!inner(*, station:stations(name))
+      `;
+    }
+    
     let query = supabase
       .from('profiles')
-      .select(`
-        *,
-        attendant:attendants!attendants_id_fkey(*, station:stations(name))
-      `, { count: 'exact' })
+      .select(selectStr, { count: 'exact' })
       .eq('role', 'ATTENDANT');
+      
     if (params.search) query = query.or(`name.ilike.%${params.search}%,phone_number.ilike.%${params.search}%`);
     if (params.stationId) {
       query = query.eq('attendant.station_id', params.stationId);
     }
     const { data, count, error } = await query.order('created_at', { ascending: false }).range(from, from + 19);
     if (error) throw error;
-    return { data: data || [], total: count || 0, page, totalPages: Math.ceil((count || 0) / 20) };
+    
+    const formattedData = (data || []).map((p: any) => ({
+      ...p,
+      profile: {
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        phone_number: p.phone_number,
+        role: p.role,
+      }
+    }));
+    
+    return { data: formattedData, total: count || 0, page, totalPages: Math.ceil((count || 0) / 20) };
   },
 
   async createAttendant(payload: {
@@ -1353,7 +1386,7 @@ export const adminUserFunctions = {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .in('role', ['SUPER_ADMIN', 'GOVERNMENT_ADMIN', 'STATION_HQ', 'STATION_BRANCH'])
+      .in('role', ['SUPER_ADMIN', 'GOVERNMENT_ADMIN', 'STATION_HQ', 'STATION_BRANCH', 'ATTENDANT'])
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];

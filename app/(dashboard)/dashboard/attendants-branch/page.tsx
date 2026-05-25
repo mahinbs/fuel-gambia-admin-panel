@@ -10,6 +10,8 @@ import { User, UserPlus, Search, Clock, Shield, Loader2, AlertCircle, MoreHorizo
 import { cn } from '@/utils/cn';
 import { attendantFunctions } from '@/supabase';
 import { useAppSelector } from '@/store/hooks';
+import { ProtectedRoute } from '@/navigation/ProtectedRoute';
+import { AdminRole } from '@/types';
 
 export default function AttendantsBranchPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,10 +31,14 @@ export default function AttendantsBranchPage() {
   });
 
   const loadAttendants = useCallback(async () => {
+    if (!user?.stationId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-      const result = await attendantFunctions.getAttendants({ stationId: user?.stationId });
+      const result = await attendantFunctions.getAttendants({ stationId: user.stationId });
       const rawAttendants = result?.data || [];
       const filtered = search
         ? rawAttendants.filter((a: any) => (a.profile?.name || '').toLowerCase().includes(search.toLowerCase()) || (a.profile?.email || '').toLowerCase().includes(search.toLowerCase()))
@@ -74,7 +80,8 @@ export default function AttendantsBranchPage() {
   const inactiveCount = attendants.filter(a => a.is_active === false).length;
 
   return (
-    <div className="space-y-10 pb-10">
+    <ProtectedRoute requiredRole={AdminRole.STATION_BRANCH}>
+      <div className="space-y-10 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Pump Attendants</h1>
@@ -227,6 +234,7 @@ export default function AttendantsBranchPage() {
           </div>
         </form>
       </Modal>
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }
