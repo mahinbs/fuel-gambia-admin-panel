@@ -56,6 +56,7 @@ export interface AdminUser {
   kycDocument2Url?: string;
   kycDocument3Url?: string;
   stationId?: string;
+  isArchived?: boolean;
 }
 
 // User Interfaces
@@ -479,14 +480,36 @@ export interface StationAdminDashboardStats {
 export interface Company {
   id: string;
   name: string;
-  registrationNumber?: string;
+  institutionCode?: string;
   contactEmail?: string;
   contactPhone?: string;
   address?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
   onboardedBy?: string;
+  onboardingDate?: string;
+  licenseDurationMonths?: number;
+  licenseExpirationDate?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SystemSettings {
+  id: string;
+  appDisplayName: string;
+  primaryColorHex: string;
+  logoUrl?: string;
+  updatedAt: string;
+}
+
+export interface LicenseRenewal {
+  id: string;
+  companyId: string;
+  renewedBy: string;
+  previousStartDate?: string;
+  previousEndDate?: string;
+  newStartDate: string;
+  newEndDate: string;
+  renewedAt: string;
 }
 
 export interface StationOrder {

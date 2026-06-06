@@ -26,7 +26,9 @@ export default function CompaniesSuperAdminPage() {
     email: '',
     phone: '',
     location: '',
-    tin: ''
+    institutionCode: '',
+    onboardingDate: new Date().toISOString().split('T')[0],
+    licenseDurationMonths: 12
   });
 
   const fetchCompanies = async () => {
@@ -45,6 +47,12 @@ export default function CompaniesSuperAdminPage() {
     fetchCompanies();
   }, []);
 
+  const derivedExpirationDate = new Date(formData.onboardingDate);
+  if (!isNaN(derivedExpirationDate.getTime())) {
+    derivedExpirationDate.setMonth(derivedExpirationDate.getMonth() + Number(formData.licenseDurationMonths));
+  }
+  const formattedExpiration = !isNaN(derivedExpirationDate.getTime()) ? derivedExpirationDate.toISOString().split('T')[0] : '';
+
   const handleOnboard = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -54,14 +62,16 @@ export default function CompaniesSuperAdminPage() {
         contact_email: formData.email,
         contact_phone: formData.phone,
         address: formData.location,
-        tin: formData.tin,
-        registration_number: formData.tin || `REG-${Date.now()}`,
+        institution_code: formData.institutionCode,
+        onboarding_date: formData.onboardingDate,
+        license_duration_months: formData.licenseDurationMonths,
+        license_expiration_date: formattedExpiration,
         status: 'ACTIVE'
       } as any);
 
       showToast('Company onboarded successfully!', 'success');
       setIsModalOpen(false);
-      setFormData({ name: '', type: 'Private Institution', email: '', phone: '', location: '', tin: '' });
+      setFormData({ name: '', type: 'Private Institution', email: '', phone: '', location: '', institutionCode: '', onboardingDate: new Date().toISOString().split('T')[0], licenseDurationMonths: 12 });
       fetchCompanies();
     } catch (err: any) {
       showToast(err.message || 'Failed to onboard company', 'error');
@@ -123,7 +133,7 @@ export default function CompaniesSuperAdminPage() {
                   <div className="flex items-center gap-2 mb-6">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Corporate Partner</p>
                     <span className="text-[9px] font-black bg-blue-50 dark:bg-blue-900/30 text-blue-600 px-1.5 py-0.5 rounded truncate max-w-[150px]">
-                      TIN: {company.tin || 'N/A'}
+                      Code: {company.institution_code || company.tin || 'N/A'}
                     </span>
                   </div>
                   
@@ -213,14 +223,41 @@ export default function CompaniesSuperAdminPage() {
                   required
                 />
                 <Input 
-                  label="TIN / Business ID" 
-                  placeholder="TIN-XXXX-XXXX" 
+                  label="Institution Code" 
+                  placeholder="INST-XXXX" 
                   className="h-14 rounded-2xl font-bold" 
-                  value={formData.tin}
-                  onChange={(e) => setFormData({...formData, tin: e.target.value})}
+                  value={formData.institutionCode}
+                  onChange={(e) => setFormData({...formData, institutionCode: e.target.value})}
                   required
                 />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Input 
+                label="Date of Onboarding" 
+                type="date"
+                className="h-14 rounded-2xl font-bold" 
+                value={formData.onboardingDate}
+                onChange={(e) => setFormData({...formData, onboardingDate: e.target.value})}
+                required
+              />
+              <Input 
+                label="License Duration (months)" 
+                type="number"
+                min="1"
+                className="h-14 rounded-2xl font-bold" 
+                value={formData.licenseDurationMonths}
+                onChange={(e) => setFormData({...formData, licenseDurationMonths: parseInt(e.target.value) || 12})}
+                required
+              />
+              <Input 
+                label="Expiration Date" 
+                type="date"
+                className="h-14 rounded-2xl font-bold opacity-70 bg-slate-100 dark:bg-slate-800" 
+                value={formattedExpiration}
+                readOnly
+              />
             </div>
             
             <div className="p-8 bg-blue-50/50 dark:bg-blue-500/5 rounded-[2rem] border border-blue-100/50 dark:border-blue-500/10 flex gap-5">
@@ -273,8 +310,8 @@ export default function CompaniesSuperAdminPage() {
                   </Badge>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Business ID / TIN</p>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedCompany.tin || 'N/A'}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Institution Code</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{selectedCompany.institution_code || selectedCompany.tin || 'N/A'}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Email</p>

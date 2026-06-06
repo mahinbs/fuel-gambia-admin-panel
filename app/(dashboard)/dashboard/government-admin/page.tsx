@@ -46,46 +46,39 @@ export default function GovernmentAdminDashboard() {
 
   const statCards = [
     {
-      title: 'Total Beneficiaries',
-      value: governmentAdminStats?.totalBeneficiaries || 0,
-      icon: Users,
-      color: 'blue',
-      change: '+5%',
-    },
-    {
-      title: 'Monthly Allocation',
+      title: 'Allocated Quota',
       value: formatLiters(governmentAdminStats?.monthlyAllocatedFuel || 0),
       icon: Fuel,
-      color: 'green',
+      color: 'blue',
       change: '+10%',
+      showGraph: true,
+      graphData: [{value: 20}, {value: 30}, {value: 25}, {value: 40}, {value: 35}, {value: 50}],
     },
     {
-      title: 'Real-time Usage',
+      title: 'Fuel Drawdown',
       value: formatLiters(governmentAdminStats?.usedFuel || 0),
       icon: TrendingUp,
-      color: 'yellow',
+      color: 'green',
       change: '68%',
+      showGraph: true,
+      graphData: [{value: 10}, {value: 15}, {value: 20}, {value: 35}, {value: 30}, {value: 45}],
     },
     {
-      title: 'National Reserve',
+      title: 'Remaining Quota',
       value: formatLiters(governmentAdminStats?.remainingFuel || 0),
       icon: ClipboardList,
-      color: 'purple',
+      color: 'amber',
       change: '-2%',
+      showGraph: true,
+      graphData: [{value: 50}, {value: 40}, {value: 45}, {value: 30}, {value: 25}, {value: 20}],
     },
     {
-      title: 'Pending Reviews',
-      value: governmentAdminStats?.pendingVerifications || 0,
-      icon: CheckSquare,
-      color: 'red',
-      change: '+3',
-    },
-    {
-      title: 'Active Protocols',
+      title: 'Active Policies',
       value: governmentAdminStats?.activeCoupons || 0,
       icon: AlertTriangle,
-      color: 'blue',
+      color: 'purple',
       change: '+12%',
+      showGraph: false,
     },
   ];
 
@@ -123,41 +116,62 @@ export default function GovernmentAdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <Card key={index} className="p-8 border-none shadow-2xl hover:shadow-3xl transition-all duration-500 group overflow-hidden relative bg-white dark:bg-slate-900">
-                <div className="flex items-center justify-between relative z-10">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.title}</p>
-                    <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                      {stat.value}
-                    </p>
-                    <div className="flex items-center gap-2 mt-4">
-                      <span className={cn(
-                        "px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider",
-                        stat.change.includes('%') && !stat.change.startsWith('-')
-                          ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" 
-                          : stat.change.startsWith('-')
-                          ? "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
-                          : "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 shadow-sm"
-                      )}>
-                        {stat.change}
-                      </span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50">Trend</span>
+                <div className="flex flex-col justify-between relative z-10 h-full gap-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{stat.title}</p>
+                      <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+                        {stat.value}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={cn(
+                          "px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider",
+                          stat.change.includes('%') && !stat.change.startsWith('-')
+                            ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                            : stat.change.startsWith('-')
+                            ? "bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+                            : "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 shadow-sm"
+                        )}>
+                          {stat.change}
+                        </span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-50">Trend</span>
+                      </div>
+                    </div>
+                    <div className={cn(
+                      "p-4 rounded-[1.2rem] shadow-xl transition-all duration-500 group-hover:scale-110",
+                      stat.color === 'blue' ? "bg-blue-600 text-white shadow-blue-500/20" :
+                      stat.color === 'green' ? "bg-emerald-600 text-white shadow-emerald-500/20" :
+                      stat.color === 'amber' ? "bg-amber-600 text-white shadow-amber-500/20" :
+                      "bg-indigo-600 text-white shadow-indigo-500/20"
+                    )}>
+                      <Icon size={24} strokeWidth={2.5} />
                     </div>
                   </div>
-                  <div className={cn(
-                    "p-5 rounded-[1.5rem] shadow-xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-3",
-                    stat.color === 'blue' ? "bg-blue-600 text-white shadow-blue-500/20" :
-                    stat.color === 'green' ? "bg-emerald-600 text-white shadow-emerald-500/20" :
-                    stat.color === 'purple' ? "bg-indigo-600 text-white shadow-indigo-500/20" :
-                    stat.color === 'red' ? "bg-rose-600 text-white shadow-rose-500/20" :
-                    "bg-amber-600 text-white shadow-amber-500/20"
-                  )}>
-                    <Icon size={32} strokeWidth={2.5} />
-                  </div>
+
+                  {stat.showGraph && stat.graphData && (
+                    <div className="h-[40px] w-full mt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={stat.graphData}>
+                          <Line 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke={
+                              stat.color === 'blue' ? '#3b82f6' : 
+                              stat.color === 'green' ? '#10b981' : 
+                              stat.color === 'amber' ? '#f59e0b' : '#6366f1'
+                            } 
+                            strokeWidth={3} 
+                            dot={false} 
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </div>
                 <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-slate-50 dark:bg-slate-800/50 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
               </Card>

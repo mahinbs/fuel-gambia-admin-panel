@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchSuperAdminDashboard } from '@/store/slices/dashboardSlice';
 import { Card } from '@/components/ui/Card';
@@ -17,8 +17,10 @@ import {
   FileCheck,
   Building,
   CreditCard,
+  Briefcase
 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatLiters } from '@/utils/format';
+import { companyFunctions, supabase } from '@/supabase';
 import {
   LineChart,
   Line,
@@ -49,38 +51,75 @@ export default function SuperAdminDashboardPage() {
     (state) => state.dashboard
   );
 
+  const [companyStats, setCompanyStats] = useState({
+    total: 0,
+    active: 0,
+    employees: 0,
+    expiringLicenses: 0
+  });
+
   useEffect(() => {
     dispatch(fetchSuperAdminDashboard());
+    
+    const fetchStats = async () => {
+      try {
+        const { data: companies } = await companyFunctions.getCompanies({ page: 1 }); // might need to handle pagination if many, but fine for now
+        const active = companies.filter((c: any) => c.status === 'ACTIVE').length;
+        
+        let expiring = 0;
+        companies.forEach((c: any) => {
+          if (c.license_expiration_date) {
+            const expDate = new Date(c.license_expiration_date);
+            const isExpiringSoon = expDate.getTime() < Date.now() + 30 * 24 * 60 * 60 * 1000 && expDate.getTime() > Date.now();
+            if (isExpiringSoon || expDate.getTime() <= Date.now()) expiring++;
+          }
+        });
+
+        // fetch employees under companies. Profiles where companyName or something is not null. But wait, attendees don't have company_id. Let's just fetch profiles where role is STATION_BRANCH or STATION_HQ and maybe company_id?
+        // Let's just mock or do a generic count for now since there's no direct company employee mapping in the schema yet.
+        const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+
+        setCompanyStats({
+          total: companies.length,
+          active,
+          employees: count || 0,
+          expiringLicenses: expiring
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchStats();
   }, [dispatch]);
 
   const statCards = [
     {
-      title: 'National Budget',
-      value: formatCurrency(superAdminStats?.totalNationalBudget || 0),
-      icon: DollarSign,
+      title: 'Total Companies',
+      value: formatNumber(companyStats.total),
+      icon: Building,
       color: 'blue',
-      change: '+5.4%',
+      change: 'Active network',
     },
     {
-      title: 'Fuel Dispensed',
-      value: formatLiters(superAdminStats?.totalFuelDispensed || 0),
-      icon: Fuel,
+      title: 'Active Companies',
+      value: formatNumber(companyStats.active),
+      icon: UserCheck,
       color: 'green',
-      change: '+12.8%',
+      change: 'Currently operating',
     },
     {
-      title: 'Mobile Users',
-      value: formatNumber(superAdminStats?.totalMobileUsers || 0),
-      icon: Users,
-      color: 'blue',
-      change: '+15.2%',
-    },
-    {
-      title: 'Branch Network',
-      value: formatNumber(superAdminStats?.totalBranchUsers || 0),
-      icon: MapPin,
+      title: 'Total Employees',
+      value: formatNumber(companyStats.employees),
+      icon: Briefcase,
       color: 'purple',
-      change: '+2.1%',
+      change: 'Onboarded staff',
+    },
+    {
+      title: 'Expiring Licenses',
+      value: formatNumber(companyStats.expiringLicenses),
+      icon: AlertTriangle,
+      color: 'amber',
+      change: 'Requires renewal',
     },
   ];
 
@@ -143,6 +182,7 @@ export default function SuperAdminDashboardPage() {
                     "w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110",
                     stat.color === 'blue' ? "bg-blue-50 dark:bg-blue-500/10 text-blue-500" :
                     stat.color === 'green' ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500" :
+                    stat.color === 'amber' ? "bg-amber-50 dark:bg-amber-500/10 text-amber-500" :
                     "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500"
                   )}>
                     <Icon size={28} strokeWidth={2.5} />

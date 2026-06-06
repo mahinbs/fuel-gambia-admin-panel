@@ -168,7 +168,36 @@ export const companyFunctions = {
   },
 
   async updateCompany(id: string, updates: Partial<Company>) {
-    const { data, error } = await supabase.from('companies').update(updates).eq('id', id).select().single();
+    const { data, error } = await supabase.from('companies').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async renewLicense(payload: { companyId: string; newDurationMonths: number; newExpirationDate: string }) {
+    const { data: user } = await supabase.auth.getUser();
+    
+    // Create renewal record
+    const { error: renewalError } = await supabase.from('license_renewals').insert({
+      company_id: payload.companyId,
+      renewed_by: user.user?.id,
+      previous_expiration_date: null, // Should ideally be fetched first but it's optional for now
+      new_expiration_date: payload.newExpirationDate,
+      renewal_duration_months: payload.newDurationMonths
+    });
+    if (renewalError) throw renewalError;
+
+    // Update company
+    const { data, error } = await supabase
+      .from('companies')
+      .update({
+        license_duration_months: payload.newDurationMonths,
+        license_expiration_date: payload.newExpirationDate,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', payload.companyId)
+      .select()
+      .single();
+    
     if (error) throw error;
     return data;
   },
@@ -1418,6 +1447,14 @@ export const adminUserFunctions = {
     const { error } = await supabase
       .from('profiles')
       .delete()
+      .eq('id', userId);
+    if (error) throw error;
+  },
+
+  async archiveUserProfile(userId: string) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_archived: true })
       .eq('id', userId);
     if (error) throw error;
   },

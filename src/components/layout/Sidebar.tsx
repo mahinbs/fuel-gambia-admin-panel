@@ -45,13 +45,18 @@ interface MenuItem {
   label: string;
   path: string;
   roles: AdminRole[];
+  submenus?: { label: string; path: string }[];
 }
 
 const allMenuItems: MenuItem[] = [
   // Super Admin Menu
   { icon: LayoutDashboard, label: 'Overview', path: '/dashboard/super-admin', roles: [AdminRole.SUPER_ADMIN] },
   { icon: Building, label: 'Company Onboarding', path: '/dashboard/companies-super-admin', roles: [AdminRole.SUPER_ADMIN] },
-  { icon: Users, label: 'User Management', path: '/dashboard/users-super-admin', roles: [AdminRole.SUPER_ADMIN] },
+  { icon: Users, label: 'User Management', path: '/dashboard/users-super-admin', roles: [AdminRole.SUPER_ADMIN], submenus: [
+    { label: 'SleekTech employees (users)', path: '/dashboard/users-super-admin?tab=employees' },
+    { label: 'Companies onboarded', path: '/dashboard/users-super-admin?tab=companies' }
+  ] },
+  { icon: FileCheck, label: 'License Management', path: '/dashboard/license-management', roles: [AdminRole.SUPER_ADMIN] },
   { icon: Wallet, label: 'Receive Income', path: '/dashboard/income-super-admin', roles: [AdminRole.SUPER_ADMIN] },
   { icon: BarChart3, label: 'Fuel Consumption', path: '/dashboard/consolidation-super-admin', roles: [AdminRole.SUPER_ADMIN] },
   { icon: FileText, label: 'Reports', path: '/dashboard/reports-super-admin', roles: [AdminRole.SUPER_ADMIN] },
@@ -60,7 +65,6 @@ const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Overview', path: '/dashboard/government-admin', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: UserCog, label: 'User Management', path: '/dashboard/beneficiaries-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: ShoppingCart, label: 'Fuel Allocation', path: '/dashboard/allocations-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
-  { icon: Building, label: 'Companies Onboarding', path: '/dashboard/companies-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: CheckSquare, label: 'Approvals', path: '/dashboard/approvals-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: Shield, label: 'Policy Management', path: '/dashboard/policies-gov', roles: [AdminRole.GOVERNMENT_ADMIN] },
   { icon: FileText, label: 'Reports', path: '/dashboard/reports-government-admin', roles: [AdminRole.GOVERNMENT_ADMIN] },
@@ -101,7 +105,7 @@ export const Sidebar: React.FC = () => {
     // Categorize items
     const overview = items.filter(i => i.label === 'Overview');
     const management = items.filter(i => 
-      ['Company Onboarding', 'Companies Onboarding', 'User Management', 'Staff Management', 'Staff/User Management', 'Pump Attendants', 'Station Management'].includes(i.label)
+      ['Company Onboarding', 'Companies Onboarding', 'User Management', 'Staff Management', 'Staff/User Management', 'Pump Attendants', 'Station Management', 'License Management'].includes(i.label)
     );
     const operations = items.filter(i => 
       ['Receive Income', 'Fuel Consumption', 'Fuel Allocation', 'Approvals', 'Policy Management', 'Fuel Ordering', 'Coupon Billing', 'Onboarding Staff', 'Shift Management', 'Inventory Management', 'Daily Reconciliation'].includes(i.label)
@@ -175,25 +179,48 @@ export const Sidebar: React.FC = () => {
                 const isActive = pathname === item.path || pathname?.startsWith(item.path + '/');
                 
                 return (
-                  <li key={item.path}>
+                  <li key={item.path} className="flex flex-col">
                     <Link
                       href={item.path}
                       className={cn(
                         'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group relative',
-                        isActive
+                        isActive && !item.submenus
                           ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20'
                           : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
                       )}
                     >
                       <Icon size={18} className={cn(
                         'transition-colors duration-300',
-                        isActive ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'
+                        (isActive && !item.submenus) ? 'text-white' : 'text-slate-500 group-hover:text-blue-400'
                       )} />
                       <span className="text-sm font-bold tracking-tight">{item.label}</span>
-                      {isActive && (
+                      {(isActive && !item.submenus) && (
                         <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
                       )}
                     </Link>
+                    {item.submenus && (
+                      <ul className="ml-9 mt-1 space-y-1">
+                        {item.submenus.map((submenu) => {
+                          // Simple check if tab matches
+                          const isSubActive = pathname === item.path && typeof window !== 'undefined' && window.location.search.includes(submenu.path.split('?')[1]);
+                          return (
+                            <li key={submenu.path}>
+                              <Link
+                                href={submenu.path}
+                                className={cn(
+                                  'block py-1.5 px-3 rounded-lg text-xs font-semibold transition-all duration-300',
+                                  isSubActive
+                                    ? 'text-white bg-slate-800/60'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'
+                                )}
+                              >
+                                {submenu.label}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </li>
                 );
               })}

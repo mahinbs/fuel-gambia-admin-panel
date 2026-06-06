@@ -13,13 +13,20 @@ import { cn } from '@/utils/cn';
 import { profilesService } from '@/services/profilesService';
 import { useToast } from '@/components/providers/ToastProvider';
 import { ProtectedRoute } from '@/navigation/ProtectedRoute';
+import { useSearchParams } from 'next/navigation';
+import { companyFunctions } from '@/supabase';
 
 export default function UsersSuperAdminPage() {
   const { showToast } = useToast();
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') || 'employees';
+  const [activeTab, setActiveTab] = useState<'employees' | 'companies'>(tabParam as any);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -32,7 +39,7 @@ export default function UsersSuperAdminPage() {
     setIsLoading(true);
     try {
       const data = await profilesService.getAdminProfiles();
-      setUsers(data);
+      setUsers(data.filter(u => !u.isArchived));
     } catch (err: any) {
       showToast(err.message || 'Failed to fetch administrative profiles', 'error');
     } finally {
@@ -40,9 +47,29 @@ export default function UsersSuperAdminPage() {
     }
   };
 
+  const fetchCompanies = async () => {
+    setIsLoading(true);
+    try {
+      const response = await companyFunctions.getCompanies({ page: 1 });
+      setCompanies(response.data || []);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to fetch onboarded companies', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (activeTab === 'employees') {
+      fetchUsers();
+    } else {
+      fetchCompanies();
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    setActiveTab((searchParams.get('tab') as any) || 'employees');
+  }, [searchParams]);
 
   const handleUpdateKyc = async (userId: string, kycStatus: 'APPROVED' | 'REJECTED') => {
     try {
@@ -79,14 +106,14 @@ export default function UsersSuperAdminPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to revoke access and delete this user?')) {
+  const handleArchive = async (id: string) => {
+    if (confirm('Are you sure you want to archive this user?')) {
       try {
-        await profilesService.deleteUserProfile(id);
-        showToast('User profile successfully deleted', 'success');
+        await profilesService.archiveUserProfile(id);
+        showToast('User profile successfully archived', 'success');
         fetchUsers();
       } catch (err: any) {
-        showToast(err.message || 'Failed to delete user profile', 'error');
+        showToast(err.message || 'Failed to archive user profile', 'error');
       }
     }
   };
@@ -215,9 +242,9 @@ export default function UsersSuperAdminPage() {
           
           {row.role !== AdminRole.SUPER_ADMIN && (
             <button 
-              onClick={() => handleDelete(row.id)}
-              className="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 transition-colors"
-              title="Delete User"
+              onClick={() => handleArchive(row.id)}
+              className="p-2 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-500/10 text-amber-500 transition-colors"
+              title="Archive User"
             >
               <Trash2 size={16} strokeWidth={2.5} />
             </button>
@@ -235,21 +262,58 @@ export default function UsersSuperAdminPage() {
             <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Access Control</h1>
             <p className="text-slate-500 font-medium mt-2">Verify registrations, manage KYC approvals, and configure platform permissions</p>
           </div>
+          
+          <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+            <button
+              onClick={() => setActiveTab('employees')}
+              className={cn(
+                "px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
+                activeTab === 'employees' ? "bg-white dark:bg-slate-700 shadow-md text-blue-600 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              )}
+            >
+              SleekTech Employees
+            </button>
+            <button
+              onClick={() => setActiveTab('companies')}
+              className={cn(
+                "px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
+                activeTab === 'companies' ? "bg-white dark:bg-slate-700 shadow-md text-blue-600 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              )}
+            >
+              Onboarded Companies
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
           <Card className="p-20 flex flex-col justify-center items-center gap-4 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 rounded-[2.5rem] shadow-2xl">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Loading administrative accounts...</p>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Loading data...</p>
           </Card>
         ) : (
           <Card className="p-0 border-none shadow-2xl overflow-visible bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl">
-            <DataTable
-              columns={columns}
-              data={users}
-              searchable
-              searchPlaceholder="Search by name, email, or details..."
-            />
+            {activeTab === 'employees' ? (
+              <DataTable
+                columns={columns}
+                data={users}
+                searchable
+                searchPlaceholder="Search by name, email, or details..."
+              />
+            ) : (
+              <DataTable
+                columns={[
+                  { key: 'name', label: 'Company Name', render: (val) => <span className="font-bold">{val}</span> },
+                  { key: 'institution_code', label: 'Institution Code', render: (val, row) => val || row.tin || 'N/A' },
+                  { key: 'contact_email', label: 'Email' },
+                  { key: 'contact_phone', label: 'Phone' },
+                  { key: 'address', label: 'Location' },
+                  { key: 'status', label: 'Status', render: (val) => <Badge variant={val === 'ACTIVE' ? 'success' : 'warning'}>{val || 'ACTIVE'}</Badge> },
+                ]}
+                data={companies}
+                searchable
+                searchPlaceholder="Search companies..."
+              />
+            )}
           </Card>
         )}
 

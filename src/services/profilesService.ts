@@ -59,4 +59,8 @@ export const profilesService = {
   async deleteUserProfile(userId: string): Promise<void> {
     await adminUserFunctions.deleteUserProfile(userId);
   },
+
+  async archiveUserProfile(userId: string): Promise<void> {
+    await adminUserFunctions.archiveUserProfile(userId);
+  },
 };

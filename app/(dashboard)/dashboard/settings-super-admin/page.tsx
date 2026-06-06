@@ -8,26 +8,77 @@ import { Palette, Upload, Save, CheckCircle2, Image as ImageIcon } from 'lucide-
 import { cn } from '@/utils/cn';
 import { ProtectedRoute } from '@/navigation/ProtectedRoute';
 import { AdminRole } from '@/types';
+import { createClient } from '@/lib/supabase';
+import { useEffect } from 'react';
 
 export default function SettingsSuperAdminPage() {
-  const [primaryColor, setPrimaryColor] = useState('#0a192f'); // Light navy blue
+  const [appDisplayName, setAppDisplayName] = useState('Fuel Gambia');
+  const [primaryColor, setPrimaryColor] = useState('#0a192f');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  
+  const supabase = createClient();
 
-  const handleSave = () => {
+  useEffect(() => {
+    const loadSettings = async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('*')
+        .limit(1)
+        .single();
+      
+      if (data) {
+        if (data.app_display_name) setAppDisplayName(data.app_display_name);
+        if (data.primary_color_hex) setPrimaryColor(data.primary_color_hex);
+        if (data.logo_url) setLogoPreview(data.logo_url);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  const handleSave = async () => {
     setIsSaving(true);
-    // Mock save delay
-    setTimeout(() => {
-      setIsSaving(false);
+    
+    let uploadedLogoUrl = logoPreview;
+
+    if (logoFile) {
+      const fileExt = logoFile.name.split('.').pop();
+      const fileName = `brand_logo_${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('kyc-documents')
+        .upload(fileName, logoFile, { upsert: true });
+        
+      if (data) {
+        const { data: publicUrlData } = supabase.storage
+          .from('kyc-documents')
+          .getPublicUrl(fileName);
+        uploadedLogoUrl = publicUrlData.publicUrl;
+      }
+    }
+
+    const { error } = await supabase
+      .from('system_settings')
+      .update({
+        app_display_name: appDisplayName,
+        primary_color_hex: primaryColor,
+        logo_url: uploadedLogoUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', '00000000-0000-0000-0000-000000000000'); // Or fetch the ID from state
+
+    setIsSaving(false);
+    if (!error) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    }, 1500);
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
@@ -62,6 +113,8 @@ export default function SettingsSuperAdminPage() {
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Application Display Name</label>
                   <Input 
+                    value={appDisplayName}
+                    onChange={(e) => setAppDisplayName(e.target.value)}
                     placeholder="e.g. Fuel Gambia"
                     className="h-14 rounded-2xl font-black uppercase text-slate-900 dark:text-white"
                   />

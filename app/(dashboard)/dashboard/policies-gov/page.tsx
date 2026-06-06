@@ -26,11 +26,20 @@ export default function PoliciesGovPage() {
 
   const [formData, setFormData] = useState({
     title: '',
-    monthlyLimit: '',
-    eligibility: '',
+    amountLimit: '',
+    role: '',
     priority: 'STANDARD',
     effectiveFrom: '',
   });
+
+  useEffect(() => {
+    switch (formData.role) {
+      case 'SUPER_ADMIN': setFormData(prev => ({ ...prev, amountLimit: '50000' })); break;
+      case 'GOVERNMENT_ADMIN': setFormData(prev => ({ ...prev, amountLimit: '30000' })); break;
+      case 'STATION_HQ': setFormData(prev => ({ ...prev, amountLimit: '20000' })); break;
+      case 'STATION_BRANCH': setFormData(prev => ({ ...prev, amountLimit: '10000' })); break;
+    }
+  }, [formData.role]);
 
   const toggleControl = (id: number) => {
     setControls(controls.map(c => c.id === id ? { ...c, active: !c.active } : c));
@@ -59,15 +68,15 @@ export default function PoliciesGovPage() {
     try {
       await policyFunctions.createPolicy({
         title: formData.title,
-        description: `Monthly limit: ${formData.monthlyLimit}L for ${formData.eligibility}`,
+        description: `Amount limit: ${formData.amountLimit} GMD for ${formData.role}`,
         policyType: 'ALLOCATION_LIMIT',
-        value: Number(formData.monthlyLimit),
+        value: Number(formData.amountLimit),
         fuelType: 'ALL',
         effectiveFrom: formData.effectiveFrom || new Date().toISOString(),
       });
       await loadPolicies();
       setIsModalOpen(false);
-      setFormData({ title: '', monthlyLimit: '', eligibility: '', priority: 'STANDARD', effectiveFrom: '' });
+      setFormData({ title: '', amountLimit: '', role: '', priority: 'STANDARD', effectiveFrom: '' });
     } catch (err: any) {
       setError(err.message || 'Policy creation failed');
     } finally {
@@ -137,10 +146,10 @@ export default function PoliciesGovPage() {
 
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 leading-tight relative z-10">{policy.name}</h3>
                   <div className="space-y-4 relative z-10">
-                    {policy.monthly_limit_liters && (
+                    {policy.value && (
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Limit</span>
-                        <span className="text-sm font-black text-slate-900 dark:text-white">{Number(policy.monthly_limit_liters).toLocaleString()} L</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Amount Limit</span>
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{Number(policy.value).toLocaleString()} GMD</span>
                       </div>
                     )}
                     {policy.vehicle_type && (
@@ -246,25 +255,25 @@ export default function PoliciesGovPage() {
             />
             <div className="grid grid-cols-2 gap-6">
               <Input
-                label="Monthly Limit (L)"
-                placeholder="200"
+                label="Amount Limit (GMD)"
+                placeholder="12000"
                 type="number"
-                value={formData.monthlyLimit}
-                onChange={(e) => setFormData({ ...formData, monthlyLimit: e.target.value })}
+                value={formData.amountLimit}
+                onChange={(e) => setFormData({ ...formData, amountLimit: e.target.value })}
                 required
               />
               <div>
-                <label className="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-widest">Eligibility Group</label>
+                <label className="block text-sm font-black text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-widest">Target Role</label>
                 <select
                   className="w-full h-12 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-bold focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all"
-                  value={formData.eligibility}
-                  onChange={(e) => setFormData({ ...formData, eligibility: e.target.value })}
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 >
-                  <option value="">Select Target</option>
-                  <option value="Private Vehicles">Private Vehicles</option>
-                  <option value="Commercial Transport">Commercial Transport</option>
-                  <option value="Emergency Services">Emergency Services</option>
-                  <option value="Government Officials">Government Officials</option>
+                  <option value="">Select Role</option>
+                  <option value="SUPER_ADMIN">Super Administrator</option>
+                  <option value="GOVERNMENT_ADMIN">Government Officer</option>
+                  <option value="STATION_HQ">Station HQ Manager</option>
+                  <option value="STATION_BRANCH">Station Branch Manager</option>
                 </select>
               </div>
             </div>
