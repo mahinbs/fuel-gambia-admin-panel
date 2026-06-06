@@ -47,7 +47,9 @@ export default function SettingsSuperAdminPage() {
   // Color picker state
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [hexInput, setHexInput] = useState('#0a192f');
+  const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
   const colorPickerRef = useRef<HTMLDivElement>(null);
+  const swatchBtnRef = useRef<HTMLButtonElement>(null);
   const nativeColorRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
@@ -55,13 +57,33 @@ export default function SettingsSuperAdminPage() {
   // Close color picker on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+      if (
+        colorPickerRef.current &&
+        !colorPickerRef.current.contains(e.target as Node) &&
+        swatchBtnRef.current &&
+        !swatchBtnRef.current.contains(e.target as Node)
+      ) {
         setShowColorPicker(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const openColorPicker = () => {
+    if (!showColorPicker && swatchBtnRef.current) {
+      const rect = swatchBtnRef.current.getBoundingClientRect();
+      // Position below the button; flip up if near bottom of viewport
+      const pickerH = 440; // approximate picker height
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const top = spaceBelow > pickerH
+        ? rect.bottom + 8
+        : rect.top - pickerH - 8;
+      const left = Math.min(rect.left, window.innerWidth - 296); // 296 = picker width + margin
+      setPickerPos({ top, left: Math.max(8, left) });
+    }
+    setShowColorPicker((v) => !v);
+  };
 
   // Load existing settings
   useEffect(() => {
@@ -291,99 +313,19 @@ export default function SettingsSuperAdminPage() {
                   </label>
                   <div className="flex items-center gap-4">
                     {/* Color swatch — click to open picker */}
-                    <div className="relative" ref={colorPickerRef}>
+                    <div className="relative">
                       <button
-                        onClick={() => setShowColorPicker((v) => !v)}
-                        className="w-20 h-14 rounded-2xl shadow-2xl border-4 border-white dark:border-slate-700 shrink-0 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-500/30 cursor-pointer group"
+                        ref={swatchBtnRef}
+                        onClick={openColorPicker}
+                        className="w-20 h-14 rounded-2xl shadow-2xl border-4 border-white dark:border-slate-700 shrink-0 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-500/30 cursor-pointer group relative"
                         style={{ backgroundColor: primaryColor }}
                         title="Click to open color picker"
                         type="button"
                       >
-                        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
                           <Pipette size={18} className="text-white drop-shadow-lg" />
                         </span>
                       </button>
-
-                      {/* Color Picker Dropdown */}
-                      {showColorPicker && (
-                        <div className="absolute top-full left-0 mt-3 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-2xl p-6 w-72 space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">
-                              Color Picker
-                            </p>
-                            <button
-                              onClick={() => setShowColorPicker(false)}
-                              className="text-slate-400 hover:text-slate-600 transition-colors"
-                              type="button"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-
-                          {/* Native color input (full spectrum) */}
-                          <div className="relative">
-                            <input
-                              ref={nativeColorRef}
-                              type="color"
-                              value={primaryColor}
-                              onChange={(e) => handleColorChange(e.target.value)}
-                              className="w-full h-40 rounded-2xl cursor-pointer border-0 p-0 bg-transparent appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-2xl [&::-webkit-color-swatch]:border-none"
-                            />
-                          </div>
-
-                          {/* Hex input */}
-                          <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                            <div
-                              className="w-8 h-8 rounded-xl shrink-0 border-2 border-white dark:border-slate-600 shadow"
-                              style={{ backgroundColor: primaryColor }}
-                            />
-                            <input
-                              type="text"
-                              value={hexInput}
-                              onChange={(e) => handleHexInputChange(e.target.value)}
-                              placeholder="#000000"
-                              className="flex-1 bg-transparent text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none"
-                              maxLength={7}
-                            />
-                          </div>
-
-                          {/* Preset swatches */}
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                              Presets
-                            </p>
-                            <div className="grid grid-cols-4 gap-2">
-                              {PRESET_COLORS.map((color) => (
-                                <button
-                                  key={color}
-                                  type="button"
-                                  onClick={() => {
-                                    handleColorChange(color);
-                                    setShowColorPicker(false);
-                                  }}
-                                  className={cn(
-                                    'w-full aspect-square rounded-xl transition-all hover:scale-110 active:scale-95 shadow-md',
-                                    primaryColor === color
-                                      ? 'ring-4 ring-blue-500 ring-offset-2 scale-110'
-                                      : ''
-                                  )}
-                                  style={{ backgroundColor: color }}
-                                  title={color}
-                                />
-                              ))}
-                            </div>
-                          </div>
-
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            className="w-full rounded-2xl font-black"
-                            onClick={() => setShowColorPicker(false)}
-                          >
-                            Apply Color
-                          </Button>
-                        </div>
-                      )}
                     </div>
 
                     {/* Hex text input */}
@@ -540,6 +482,92 @@ export default function SettingsSuperAdminPage() {
             )}
           </Button>
         </div>
+
+        {/* ── Color Picker Portal (fixed-position, escapes card overflow) ── */}
+        {showColorPicker && (
+          <div
+            ref={colorPickerRef}
+            className="fixed z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-2xl p-6 w-72 space-y-5"
+            style={{ top: pickerPos.top, left: pickerPos.left }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                Color Picker
+              </p>
+              <button
+                onClick={() => setShowColorPicker(false)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                type="button"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Native browser color wheel */}
+            <div>
+              <input
+                ref={nativeColorRef}
+                type="color"
+                value={primaryColor}
+                onChange={(e) => handleColorChange(e.target.value)}
+                className="w-full h-40 rounded-2xl cursor-pointer border-0 p-0 bg-transparent appearance-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-2xl [&::-webkit-color-swatch]:border-none"
+              />
+            </div>
+
+            {/* Hex input row */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+              <div
+                className="w-8 h-8 rounded-xl shrink-0 border-2 border-white dark:border-slate-600 shadow"
+                style={{ backgroundColor: primaryColor }}
+              />
+              <input
+                type="text"
+                value={hexInput}
+                onChange={(e) => handleHexInputChange(e.target.value)}
+                placeholder="#000000"
+                className="flex-1 bg-transparent text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none"
+                maxLength={7}
+              />
+            </div>
+
+            {/* Preset swatches */}
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                Presets
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {PRESET_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => {
+                      handleColorChange(color);
+                      setShowColorPicker(false);
+                    }}
+                    className={cn(
+                      'w-full aspect-square rounded-xl transition-all hover:scale-110 active:scale-95 shadow-md',
+                      primaryColor === color
+                        ? 'ring-4 ring-blue-500 ring-offset-2 scale-110'
+                        : ''
+                    )}
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full rounded-2xl font-black"
+              onClick={() => setShowColorPicker(false)}
+            >
+              Apply Color
+            </Button>
+          </div>
+        )}
       </div>
     </ProtectedRoute>
   );
